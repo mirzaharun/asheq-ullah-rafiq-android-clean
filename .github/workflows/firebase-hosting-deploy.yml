@@ -36,6 +36,7 @@ jobs:
       - name: Authenticate with Workload Identity Federation
         uses: google-github-actions/auth@v3
         with:
+          project_id: asheq-ullah-rafiq-digital-p
           workload_identity_provider: projects/982402541543/locations/global/workloadIdentityPools/github-actions/providers/github-actions
           service_account: ${{ vars.FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT }}
 
@@ -45,6 +46,7 @@ jobs:
             echo "Google credentials were not configured."
             exit 1
           fi
+
           if [ -z "$FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT" ]; then
             echo "Service account variable is missing."
             exit 1
