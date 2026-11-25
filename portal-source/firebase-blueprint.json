@@ -1,0 +1,226 @@
+{
+  "entities": {
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Global branding, hero banner, office addresses, and ticker configuration",
+      "type": "object",
+      "properties": {
+        "appNameBn": { "type": "string" },
+        "appNameEn": { "type": "string" },
+        "subTitleBn": { "type": "string" },
+        "subTitleEn": { "type": "string" },
+        "profileNameBn": { "type": "string" },
+        "profileNameEn": { "type": "string" },
+        "heroTitleBn": { "type": "string" },
+        "heroTitleEn": { "type": "string" },
+        "heroImageUrl": { "type": "string" },
+        "avatarImageUrl": { "type": "string" },
+        "hotlinePhone": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "noticeMarqueeBn": { "type": "string" },
+        "noticeMarqueeEn": { "type": "string" }
+      }
+    },
+    "ProfileInfo": {
+      "title": "ProfileInfo",
+      "description": "Personal biography, milestones, and public service profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "briefIntroBn": { "type": "string" },
+        "briefIntroEn": { "type": "string" },
+        "fullBiographyBn": { "type": "string" },
+        "fullBiographyEn": { "type": "string" }
+      }
+    },
+    "DevelopmentProject": {
+      "title": "DevelopmentProject",
+      "description": "Development project across Moheshkhali and Kutubdia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleBn": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "categoryBn": { "type": "string" },
+        "categoryEn": { "type": "string" },
+        "budgetBn": { "type": "string" },
+        "budgetEn": { "type": "string" },
+        "completionPercentage": { "type": "integer" },
+        "status": { "type": "string" },
+        "upazila": { "type": "string" },
+        "union": { "type": "string" },
+        "year": { "type": "integer" }
+      },
+      "required": ["titleBn"]
+    },
+    "BloodDonor": {
+      "title": "BloodDonor",
+      "description": "Verified blood donor directory entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "bloodGroup": { "type": "string" },
+        "upazila": { "type": "string" },
+        "phone": { "type": "string" },
+        "isAvailable": { "type": "boolean" }
+      },
+      "required": ["nameBn", "bloodGroup", "phone"]
+    },
+    "AppointmentRequest": {
+      "title": "AppointmentRequest",
+      "description": "Authenticated citizen application and appointment petition",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "trackingId": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "mobile": { "type": "string" },
+        "upazila": { "type": "string" },
+        "union": { "type": "string" },
+        "category": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "attachmentUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "adminNote": { "type": "string" },
+        "scheduledDate": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "timestamp": { "type": "number" },
+        "serverCreatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "phone", "message", "status"]
+    },
+    "CitizenGrievance": {
+      "title": "CitizenGrievance",
+      "description": "Authenticated citizen grievance submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "upazila": { "type": "string" },
+        "subject": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "phone", "subject", "details", "status"]
+    },
+    "GeneralFeedback": {
+      "title": "GeneralFeedback",
+      "description": "Authenticated citizen feedback or suggestion",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "union": { "type": "string" },
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "attachmentUrl": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "phone", "message"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Trusted administrator RBAC directory document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "editor", "application_manager"] },
+        "active": { "type": "boolean" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "active"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable admin action audit trail",
+      "type": "object",
+      "properties": {
+        "actorUid": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetCollection": { "type": "string" },
+        "targetId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["actorUid", "action", "targetCollection"]
+    },
+    "PublicCmsRecord": {
+      "title": "PublicCmsRecord",
+      "description": "Publicly readable, admin-managed portal content record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "order": { "type": "integer" },
+        "isPublished": { "type": "boolean" }
+      }
+    },
+    "PollVote": {
+      "title": "PollVote",
+      "description": "Authenticated citizen vote record per poll",
+      "type": "object",
+      "properties": {
+        "pollId": { "type": "string" },
+        "userId": { "type": "string" },
+        "optionIndex": { "type": "integer" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["pollId", "userId", "optionIndex"]
+    }
+  },
+  "firestore": {
+    "/config/{docId}": { "schema": { "$ref": "#/entities/AppConfig" }, "description": "App configuration & branding" },
+    "/profile_info/{docId}": { "schema": { "$ref": "#/entities/ProfileInfo" }, "description": "Leader biography & profile" },
+    "/filter_chips/{chipId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Filter categories" },
+    "/weather_data/{docId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Weather and maritime signals" },
+    "/watercraft_schedules/{scheduleId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Watercraft route schedules" },
+    "/tide_schedules/{docId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "High/low tide timings" },
+    "/sea_truck_updates/{docId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Sea-truck live operational notices" },
+    "/media_assets/{docId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Banner video and avatar asset URLs" },
+    "/development_projects/{projectId}": { "schema": { "$ref": "#/entities/DevelopmentProject" }, "description": "Development projects" },
+    "/development_categories/{categoryId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Standard development category cards" },
+    "/homepage_categories/{categoryId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Homepage quick-service cards and featured banner" },
+    "/notices/{noticeId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Public notices and announcements" },
+    "/gallery_items/{itemId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Photo and video gallery" },
+    "/media_items/{itemId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Media press archive" },
+    "/government_reports/{reportId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Government reports and gazettes" },
+    "/important_links/{linkId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Verified external reference links" },
+    "/special_events/{eventId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Special events and national days" },
+    "/emergency_contacts/{contactId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Emergency directory contacts" },
+    "/blood_donors/{donorId}": { "schema": { "$ref": "#/entities/BloodDonor" }, "description": "Blood donor directory" },
+    "/digital_services/{serviceId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Citizen digital service links" },
+    "/education_resources/{resourceId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Scholarships, result portals, and education boards" },
+    "/economy_opportunities/{itemId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Employment circulars, industries, and youth skills" },
+    "/welfare_programs/{programId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Social safety net and welfare allowance programs" },
+    "/union_services/{hubId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Union Parishad UDC digital center directory" },
+    "/tourism_spots/{spotId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Moheshkhali & Kutubdia tourism destinations" },
+    "/citizen_polls/{pollId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Citizen priority polls managed by admins" },
+    "/poll_votes/{voteId}": { "schema": { "$ref": "#/entities/PollVote" }, "description": "Authenticated citizen poll vote records" },
+    "/daily_schedules/{scheduleId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Daily activity schedule" },
+    "/faqs/{faqId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Frequently asked questions" },
+    "/union_representatives/{repId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Union Parishad directory" },
+    "/social_media_links/{linkId}": { "schema": { "$ref": "#/entities/PublicCmsRecord" }, "description": "Official social media links" },
+    "/applications/{applicationId}": { "schema": { "$ref": "#/entities/AppointmentRequest" }, "description": "Private citizen applications" },
+    "/appointments/{appointmentId}": { "schema": { "$ref": "#/entities/AppointmentRequest" }, "description": "Private citizen appointments (legacy mirror)" },
+    "/citizen_grievances/{grievanceId}": { "schema": { "$ref": "#/entities/CitizenGrievance" }, "description": "Private citizen grievances" },
+    "/general_feedback/{feedbackId}": { "schema": { "$ref": "#/entities/GeneralFeedback" }, "description": "Private citizen feedback" },
+    "/admins/{adminUid}": { "schema": { "$ref": "#/entities/AdminUser" }, "description": "Trusted administrator RBAC roles" },
+    "/audit_logs/{logId}": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Immutable admin audit logs" }
+  }
+}

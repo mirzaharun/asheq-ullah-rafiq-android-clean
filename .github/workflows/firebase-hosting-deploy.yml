@@ -1,0 +1,53 @@
+name: Deploy Firebase Hosting
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_PROJECT_ID: asheq-ullah-rafiq-digital-p
+      FIREBASE_HOSTING_SITE_ID: asheq-ullah-rafiq-digital-p
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: portal-source/web-admin/package-lock.json
+
+      - name: Install dependencies and build Admin Panel
+        working-directory: portal-source/web-admin
+        run: |
+          npm ci
+          npm run build
+
+      - name: Authenticate with Workload Identity Federation
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Verify configured default Hosting site
+        run: |
+          if [ "$FIREBASE_HOSTING_SITE_ID" != "$FIREBASE_PROJECT_ID" ]; then
+            echo "Configured site is not the Firebase project's default Hosting site."
+            exit 1
+          fi
+
+      - name: Deploy Hosting only
+        working-directory: portal-source
+        run: |
+          npx --yes firebase-tools deploy \
+            --only hosting \
+            --project "$FIREBASE_PROJECT_ID"

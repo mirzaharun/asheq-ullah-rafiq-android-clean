@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Asheq Ullah Rafiq Public Service Portal - Admin Panel API Schema",
+  "description": "Structured JSON Data Models mapping directly to Admin Panel REST API database endpoints",
+  "endpoints": {
+    "GET /api/v1/config": {
+      "app_name_bn": "আশেক উল্লাহ রফিক",
+      "app_name_en": "Asheq Ullah Rafiq",
+      "sub_title_bn": "উন্নয়ন ও জনসেবা",
+      "sub_title_en": "Development & Public Service",
+      "constituency_bn": "কক্সবাজার-২ (মহেশখালী–কুতুবদিয়া)",
+      "constituency_en": "Cox's Bazar-2 (Moheshkhali–Kutubdia)",
+      "avatar_url": "https://cdn.example.org/asheq_avatar.png",
+      "hero_banner_url": "https://cdn.example.org/moheshkhali_banner.png",
+      "footer_copyright_bn": "© আশেক উল্লাহ রফিক • সর্বস্বত্ব সংরক্ষিত",
+      "footer_copyright_en": "© Asheq Ullah Rafiq • All Rights Reserved",
+      "footer_policy_bn": "গোপনীয়তা নীতি • ব্যবহারের শর্তাবলী",
+      "footer_policy_en": "Privacy Policy • Terms of Service"
+    },
+    "GET /api/v1/weather": {
+      "temperature_c": 29.0,
+      "condition_bn": "রৌদ্রোজ্জ্বল ও শান্ত আবহাওয়া",
+      "condition_en": "Sunny & Calm Weather",
+      "wind_speed_kmh": 12,
+      "sea_state_bn": "শান্ত (চলাচলের সম্পূর্ণ অনুকূল)",
+      "sea_state_en": "Calm (Fully safe for sea voyage)",
+      "maritime_signal": 1,
+      "signal_desc_bn": "১ নম্বর দূরবর্তী সতর্ক সংকেত",
+      "signal_desc_en": "Distant Cautionary Signal No. 1",
+      "high_tide": "01:30 PM",
+      "low_tide": "07:45 PM",
+      "advisory_bn": "বঙ্গোপসাগরে ট্রলার ও সী-ট্রাক চলাচল স্বাভাবিক রয়েছে। জেলেরা উপকূলে সতর্ক থাকুন।",
+      "advisory_en": "Sea-trucks and trawlers are operating normally in the Bay of Bengal.",
+      "last_updated": "2026-10-30T09:00:00Z"
+    },
+    "GET /api/v1/seatruck": {
+      "general_status_bn": "চলাচল স্বাভাবিক ও সময়সূচী অনুযায়ী",
+      "general_status_en": "Service Operational & on schedule",
+      "notice_bn": "ভাটার সময় জেটি ব্যবহারের ক্ষেত্রে নিরাপত্তা কর্মীদের নির্দেশনা মেনে চলুন।",
+      "notice_en": "Follow security guidance at jetties during low tide.",
+      "routes": [
+        {
+          "route_id": "R1",
+          "from_bn": "কক্সবাজার (৬ নং ঘাট)",
+          "from_en": "Cox's Bazar (Ghat No. 6)",
+          "to_bn": "মহেশখালী (গোরকঘাটা জেটি)",
+          "to_en": "Moheshkhali (Gorakghata)",
+          "vessel_name_bn": "এসটি শহীদ আব্দুর রব",
+          "vessel_name_en": "ST Shaheed Abdur Rob",
+          "departure_time_bn": "সকাল ০৭:০০, ০৯:৩০, দুপুর ১২:০০, বিকাল ০৩:৩০",
+          "departure_time_en": "07:00 AM, 09:30 AM, 12:00 PM, 03:30 PM",
+          "fare_bdt": 45,
+          "status": "OPERATIONAL"
+        }
+      ]
+    },
+    "GET /api/v1/tourism/spots": [
+      {
+        "spot_id": "adinath_temple",
+        "title_bn": "আদিনাথ মন্দির (মৈনাক পাহাড়)",
+        "title_en": "Adinath Temple (Mainak Hill)",
+        "category": "Moheshkhali",
+        "cover_image_url": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80",
+        "description_bn": "মহেশখালী দ্বীপের সর্বোচ্চ মৈনাক পাহাড়ের চূড়ায় অবস্থিত ঐতিহাসিক ও সনাতন ধর্মাবলম্বীদের অন্যতম প্রধান তীর্থস্থান আদিনাথ শিব মন্দির।",
+        "description_en": "Perched on the summit of Mainak Hill in Moheshkhali, Adinath Temple is an ancient pilgrimage site with panoramic Bay of Bengal views.",
+        "travel_route_details_bn": "কক্সবাজার ৬ নং ঘাট থেকে স্পিডবোটে মহেশখালী গোরকঘাটা জেটি (২০ মিনিট), সেখান থেকে সিএনজি বা টমটমে মৈনাক পাহাড় (১৫ মিনিট)।",
+        "travel_route_details_en": "Speedboat from Cox's Bazar Ghat No. 6 to Gorakghata Jetty (20 mins), then local CNG to Mainak Hill (15 mins).",
+        "transport_types": ["Speedboat", "Sea-truck", "CNG Auto"],
+        "approx_fare": "স্পিডবোট: ১১০ টাকা, সিএনজি: ৩০-৪০ টাকা",
+        "recommended_hotels_bn": ["মহেশখালী জেলা পরিষদ ডাকবাংলো", "হোটেল অবকাশ"],
+        "recommended_hotels_en": ["Zila Parishad Dak Bungalow", "Hotel Abakash"],
+        "seafood_restaurants_bn": ["আদিনাথ হিলভিউ রেস্তোরাঁ", "গোরকঘাটা তাজা রূপচাঁদা হোটেল"],
+        "seafood_restaurants_en": ["Adinath Hillview Restaurant", "Gorakghata Fresh Pomfret Hotels"],
+        "google_maps_url": "https://maps.google.com/?q=Adinath+Temple+Moheshkhali",
+        "navigation_steps_bn": [
+          "১. কক্সবাজার ৬ নং ঘাট বা কস্তুরী ঘাটে পৌঁছান",
+          "২. লাইফ জ্যাকেট পরে স্পিডবোটে উঠুন",
+          "৩. গোরকঘাটা জেটি থেকে সিএনজি নিয়ে পাহাড়ের চূড়ায় উঠুন"
+        ],
+        "navigation_steps_en": [
+          "1. Reach Cox's Bazar Ghat No. 6",
+          "2. Board speedboat with mandatory life jacket",
+          "3. Take local CNG to temple steps at Mainak Hill"
+        ]
+      },
+      {
+        "spot_id": "sonadia_island",
+        "title_bn": "সোনাদিয়া দ্বীপ (মহেশখালী)",
+        "title_en": "Sonadia Island (Moheshkhali)",
+        "category": "Moheshkhali",
+        "cover_image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80",
+        "description_bn": "লাল কাঁকড়ার অভয়াশ্রম, ঝাউবন ও শামুক-ঝিনুক খচিত অনাবিল নির্জন সমুদ্রসৈকত।",
+        "description_en": "Pristine coastal island famous for red crabs, untouched dunes, and migratory birds.",
+        "travel_route_details_bn": "মহেশখালী গোরকঘাটা ঘাট থেকে ট্রলার বা স্পিডবোটে সোনাদিয়া দ্বীপে সরাসরি যাতায়াত।",
+        "travel_route_details_en": "Board an engine trawler from Gorakghata canal directly to Sonadia Island.",
+        "transport_types": ["Trawler", "Speedboat", "Walking"],
+        "approx_fare": "ট্রলার জনপ্রতি ৫০-৮০ টাকা",
+        "recommended_hotels_bn": ["দ্বীপে পরিবেশবান্ধব ক্যাম্পিং"],
+        "recommended_hotels_en": ["Eco-camping with prior permission"],
+        "seafood_restaurants_bn": ["তাজা সামুদ্রিক মাছ ও শুঁটকি ভর্তা"],
+        "seafood_restaurants_en": ["Fresh island fish and local coastal rice"],
+        "google_maps_url": "https://maps.google.com/?q=Sonadia+Island+Moheshkhali",
+        "navigation_steps_bn": [
+          "১. মহেশখালী ঘাট থেকে ট্রলারের পথ ধরুন",
+          "২. ম্যানগ্রোভ খালের মোহনা অতিক্রম করুন",
+          "৩. সোনাদিয়া সৈকতে লাল কাঁকড়ার সৌন্দর্য উপভোগ করুন"
+        ],
+        "navigation_steps_en": [
+          "1. Board local trawler at Gorakghata",
+          "2. Cruise through mangrove estuary channels",
+          "3. Arrive at virgin western beaches"
+        ]
+      },
+      {
+        "spot_id": "kutubdia_lighthouse",
+        "title_bn": "কুতুবদিয়া বাতিঘর (Lighthouse)",
+        "title_en": "Kutubdia Lighthouse",
+        "category": "Kutubdia",
+        "cover_image_url": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80",
+        "description_bn": "১৮৪৬ সালে ব্রিটিশ আমলে প্রতিষ্ঠিত ঐতিহাসিক বাতিঘর যা বঙ্গোপসাগরের গভীর জলসীমার পথপ্রদর্শক।",
+        "description_en": "Built in 1846 during British rule, guiding ships navigating the Bay of Bengal.",
+        "travel_route_details_bn": "চকরিয়া মগনামা ঘাট থেকে বোট বা স্পিডবোটে কুতুবদিয়া দরবার ঘাট (১৫ মিনিট), সেখান থেকে সিএনজিতে বাতিঘর।",
+        "travel_route_details_en": "Magnama Ghat in Pekua by boat to Kutubdia Darbar Ghat (15 mins), then CNG to Lighthouse.",
+        "transport_types": ["Speedboat", "Sea-truck", "CNG Auto"],
+        "approx_fare": "বোট: ৫০-৮০ টাকা, সিএনজি: ৫০ টাকা",
+        "recommended_hotels_bn": ["হোটেল সাগরিকা (বড়ঘোপ)", "উপজেলা রেস্টহাউজ"],
+        "recommended_hotels_en": ["Hotel Sagarika (Baraghop)", "Upazila Guest House"],
+        "seafood_restaurants_bn": ["উপকূলীয় তাজা লইট্টা ও রূপচাঁদা ভাতের হোটেল"],
+        "seafood_restaurants_en": ["Baraghop coastal fish diners"],
+        "google_maps_url": "https://maps.google.com/?q=Kutubdia+Lighthouse",
+        "navigation_steps_bn": [
+          "১. মগনামা ঘাট থেকে বোট যোগে কুতুবদিয়া চ্যানেলে পাড়ি দিন",
+          "২. দরবার ঘাটে নেমে সিএনজি যোগে বাতিঘর পৌঁছান"
+        ],
+        "navigation_steps_en": [
+          "1. Cross channel from Magnama Ghat by boat",
+          "2. Take local CNG from Darbar Ghat to Lighthouse site"
+        ]
+      },
+      {
+        "spot_id": "kutubdia_sea_beach",
+        "title_bn": "কুতুবদিয়া সমুদ্রসৈকত ও বায়ুবিদ্যুৎ কেন্দ্র",
+        "title_en": "Kutubdia Sea Beach & Windmill Park",
+        "category": "Kutubdia",
+        "cover_image_url": "https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&q=80",
+        "description_bn": "২০ কিমি দীর্ঘ অনাবিল নিরিবিলি সৈকত ও বাংলাদেশের প্রথম বাণিজ্যিক বায়ুবিদ্যুৎ কেন্দ্র (Windmill)।",
+        "description_en": "Quiet 20km long sandy beach alongside Bangladesh's pioneer commercial wind turbine farm.",
+        "travel_route_details_bn": "কুতুবদিয়া সদর বা বড়ঘোপ থেকে সিএনজি যোগে আলী আকবর ডেইল সৈকত ও উইন্ডমিল প্রাঙ্গণ।",
+        "travel_route_details_en": "CNG auto from Kutubdia Sadar to Ali Akbar Deil beach and wind turbine installations.",
+        "transport_types": ["CNG Auto", "Battery Rickshaw", "Motorbike"],
+        "approx_fare": "সিএনজি: ৬০-৮০ টাকা",
+        "recommended_hotels_bn": ["বড়ঘোপ বাজারের হোটেল ও জেলা পরিষদ ডাকবাংলো"],
+        "recommended_hotels_en": ["Baraghop lodges & Zila Parishad rest house"],
+        "seafood_restaurants_bn": ["সৈকত সংলগ্ন বিচ ক্যাফে ও তাজা নারিকেল"],
+        "seafood_restaurants_en": ["Beach shacks with green coconut and fresh fried fish"],
+        "google_maps_url": "https://maps.google.com/?q=Kutubdia+Windmill+Beach",
+        "navigation_steps_bn": [
+          "১. কুতুবদিয়া সদর থেকে পশ্চিম উপকূলীয় সড়কে রওয়ানা হোন",
+          "২. বায়ুবিদ্যুৎ উইন্ডমিলের পাদদেশে সূর্যাস্ত উপভোগ করুন"
+        ],
+        "navigation_steps_en": [
+          "1. Drive along west coastal road towards Ali Akbar Deil",
+          "2. Enjoy sunset views across the wind turbine park"
+        ]
+      }
+    ],
+    "GET /api/v1/services/emergency": [
+      {
+        "id": "E1",
+        "title_bn": "মহেশখালী থানা (ডিউটি অফিসার)",
+        "title_en": "Moheshkhali Police Station",
+        "phone": "01713373671",
+        "address_bn": "গোরকঘাটা, মহেশখালী",
+        "address_en": "Gorakghata, Moheshkhali",
+        "is_24_hours": true
+      }
+    ],
+    "GET /api/v1/services/blood_donors": [
+      {
+        "id": "B1",
+        "name_bn": "মোহাম্মদ রাশেদুল ইসলাম",
+        "blood_group": "O+",
+        "upazila": "Moheshkhali",
+        "area": "গোরকঘাটা সদর",
+        "phone": "01819123456",
+        "is_available": true
+      }
+    ]
+  }
+}

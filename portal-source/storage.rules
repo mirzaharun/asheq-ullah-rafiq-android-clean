@@ -1,0 +1,156 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isFirestoreAdmin() {
+      return isSignedIn() &&
+             firestore.exists(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/admins/$(request.auth.uid)) &&
+             firestore.get(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+
+    function isFirestoreSuperAdmin() {
+      return isFirestoreAdmin() &&
+             firestore.get(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/admins/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    function isPublishedAppRelease(versionCode, fileName) {
+      return versionCode.matches('^[0-9]+$') &&
+             firestore.exists(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/app_releases/v$(versionCode)) &&
+             firestore.get(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/app_releases/v$(versionCode)).data.status == 'published' &&
+             firestore.get(/databases/ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943/documents/app_releases/v$(versionCode)).data.storagePath == 'app_release_packages/' + versionCode + '/' + fileName;
+    }
+
+    function isAdmin() {
+      return isFirestoreAdmin();
+    }
+
+    function isValidImageOrPdf() {
+      return request.resource != null &&
+             request.resource.size <= 10 * 1024 * 1024 &&
+             (request.resource.contentType.matches('image/.*') ||
+              request.resource.contentType == 'application/pdf');
+    }
+
+    function isValidCmsAsset() {
+      return request.resource != null &&
+             request.resource.size <= 50 * 1024 * 1024 &&
+             (request.resource.contentType.matches('image/.*') ||
+              request.resource.contentType.matches('video/.*') ||
+              request.resource.contentType == 'application/pdf' ||
+              request.resource.contentType in [
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.oasis.opendocument.text',
+                'text/plain'
+              ]);
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Public CMS media & official documents (Admin write only)
+    match /development_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /development_documents/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /profile/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /education_documents/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /employment_circulars/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /welfare_documents/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /service_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /tourism_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /report_documents/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /event_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    match /cms_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCmsAsset();
+    }
+
+    // APK releases are public downloads; upload remains restricted to active admins.
+    match /app_releases/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() &&
+                   request.resource != null &&
+                   request.resource.size <= 50 * 1024 * 1024 &&
+                   request.resource.contentType == 'application/vnd.android.package-archive';
+    }
+
+    // Release packages are retrievable only by admins or while their version is published.
+    match /app_release_packages/{versionCode}/{fileName} {
+      allow get: if isFirestoreSuperAdmin() || isPublishedAppRelease(versionCode, fileName);
+      allow list: if false;
+      allow create: if isFirestoreSuperAdmin() &&
+                    resource == null &&
+                    request.resource != null &&
+                    request.resource.size > 0 &&
+                    request.resource.size <= 50 * 1024 * 1024 &&
+                    request.resource.contentType == 'application/vnd.android.package-archive';
+      allow update, delete: if false;
+    }
+
+    // Private citizen application attachments (Owner + Admin only)
+    match /citizen_attachments/{userId}/{allPaths=**} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId && isValidImageOrPdf();
+    }
+  }
+}

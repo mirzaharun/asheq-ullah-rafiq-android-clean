@@ -1,0 +1,580 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Security Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && userId is string && userId.size() > 0 && request.auth.uid == userId;
+    }
+
+    function adminDocPath() {
+      return /databases/$(database)/documents/admins/$(request.auth.uid);
+    }
+
+    function hasActiveAdminDoc() {
+      return isSignedIn() &&
+             exists(adminDocPath()) &&
+             get(adminDocPath()).data.active == true;
+    }
+
+    function adminRole() {
+      return get(adminDocPath()).data.role;
+    }
+
+    function isSuperAdmin() {
+      return hasActiveAdminDoc() && adminRole() == 'super_admin';
+    }
+
+    function isEditor() {
+      return isSuperAdmin() || (hasActiveAdminDoc() && adminRole() == 'editor');
+    }
+
+    function isApplicationManager() {
+      return isSuperAdmin() || (hasActiveAdminDoc() && adminRole() == 'application_manager');
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || isEditor() || isApplicationManager();
+    }
+
+    function isContentAdmin() {
+      return isSuperAdmin() || isEditor();
+    }
+
+    // --- Validation Helpers ---
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || data[key] == null || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidTimestampOrMissing(data, key) {
+      return !(key in data) || data[key] == null || (data[key] is timestamp && data[key] <= request.time);
+    }
+
+    function isValidCmsPublishedFlag(data) {
+      return (!('isPublished' in data) || data.isPublished is bool) &&
+             (!('published' in data) || data.published is bool) &&
+             (!('order' in data) || data.order is int || data.order is float);
+    }
+
+    function isValidAppConfig(data) {
+      return isOptionalString(data, 'appNameBn', 150) &&
+             isOptionalString(data, 'appNameEn', 150) &&
+             isOptionalString(data, 'subTitleBn', 200) &&
+             isOptionalString(data, 'subTitleEn', 200) &&
+             isOptionalString(data, 'heroTitleBn', 300) &&
+             isOptionalString(data, 'heroTitleEn', 300) &&
+             isOptionalString(data, 'heroSubtitleBn', 500) &&
+             isOptionalString(data, 'heroSubtitleEn', 500) &&
+             isOptionalString(data, 'noticeMarqueeBn', 1000) &&
+             isOptionalString(data, 'noticeMarqueeEn', 1000) &&
+             isOptionalString(data, 'hotlinePhone', 40) &&
+             isOptionalString(data, 'contactEmail', 120);
+    }
+
+    function isValidAppRelease(data, releaseId) {
+      return isValidId(releaseId) &&
+             data.versionCode is int && data.versionCode > 0 && data.versionCode <= 2100000000 &&
+             data.versionName is string && data.versionName.size() >= 1 && data.versionName.size() <= 64 &&
+             data.releaseNotesBn is string && data.releaseNotesBn.size() <= 4000 &&
+             data.releaseNotesEn is string && data.releaseNotesEn.size() <= 4000 &&
+             data.status is string && data.status in ['draft', 'published', 'unpublished'] &&
+             data.downloadUrl is string && data.downloadUrl.size() <= 3000 &&
+             data.downloadUrl.matches('^https://firebasestorage.googleapis.com/v0/b/asheq-ullah-rafiq-digital-p.firebasestorage.app/o/app_release_packages%2F.*') &&
+             data.storagePath is string &&
+             data.storagePath.matches('^app_release_packages/[0-9]+/[A-Za-z0-9_-]+[.]apk$') &&
+             data.fileName is string && data.fileName.size() >= 5 && data.fileName.size() <= 150 &&
+             data.fileName.matches('^[A-Za-z0-9._-]+[.]apk$') &&
+             data.fileSizeBytes is int && data.fileSizeBytes > 0 && data.fileSizeBytes <= 52428800 &&
+             data.sha256 is string && data.sha256.matches('^[0-9a-f]{64}$') &&
+             data.uploadedBy is string && data.uploadedBy.size() >= 1 && data.uploadedBy.size() <= 128 &&
+             isOptionalString(data, 'uploadedByEmail', 150) &&
+             isValidTimestampOrMissing(data, 'createdAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt') &&
+             isValidTimestampOrMissing(data, 'releaseDate') &&
+             isValidTimestampOrMissing(data, 'publishedAt');
+    }
+
+    function isValidProfileInfo(data) {
+      return data.nameBn is string && data.nameBn.size() >= 1 && data.nameBn.size() <= 150 &&
+             isOptionalString(data, 'nameEn', 150) &&
+             isOptionalString(data, 'titleBn', 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'briefIntroBn', 4000) &&
+             isOptionalString(data, 'briefIntroEn', 4000) &&
+             isOptionalString(data, 'fullBiographyBn', 15000) &&
+             isOptionalString(data, 'fullBiographyEn', 15000);
+    }
+
+    function isValidDevelopmentProject(data) {
+      return data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 300 &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'categoryBn', 150) &&
+             isOptionalString(data, 'categoryEn', 150) &&
+             isOptionalString(data, 'budgetBn', 150) &&
+             isOptionalString(data, 'budgetEn', 150) &&
+             isOptionalString(data, 'descriptionBn', 8000) &&
+             isOptionalString(data, 'descriptionEn', 8000) &&
+             isOptionalString(data, 'status', 60) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'union', 80) &&
+             isValidCmsPublishedFlag(data) &&
+             (!('completionPercentage' in data) || (data.completionPercentage is int && data.completionPercentage >= 0 && data.completionPercentage <= 100));
+    }
+
+    function isValidNotice(data) {
+      return data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 300 &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'detailsBn', 5000) &&
+             isOptionalString(data, 'detailsEn', 5000) &&
+             isValidCmsPublishedFlag(data) &&
+             (!('isUrgent' in data) || data.isUrgent is bool);
+    }
+
+    function isValidGalleryItem(data) {
+      return data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 300 &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'imageUrl', 2000) &&
+             isOptionalString(data, 'mediaType', 30) &&
+             isOptionalString(data, 'videoEmbedUrl', 2000) &&
+             isValidCmsPublishedFlag(data);
+    }
+
+    function isValidBloodDonor(data) {
+      return data.nameBn is string && data.nameBn.size() >= 1 && data.nameBn.size() <= 120 &&
+             data.bloodGroup is string && data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] &&
+             data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 25 &&
+             isOptionalString(data, 'userId', 128) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'areaBn', 120) &&
+             (!('isAvailable' in data) || data.isAvailable is bool);
+    }
+
+    function isValidApplicationStatus(status) {
+      return status in [
+        'Pending',
+        'Submitted',
+        'Under Review',
+        'Additional Information Required',
+        'Forwarded to Relevant Office',
+        'In Progress',
+        'Resolved',
+        'Rejected with explanation',
+        'REVIEWING',
+        'SCHEDULED',
+        'COMPLETED',
+        'CANCELLED'
+      ];
+    }
+
+    function isValidApplication(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             ((data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 25) ||
+              (data.mobile is string && data.mobile.size() >= 6 && data.mobile.size() <= 25)) &&
+             data.message is string && data.message.size() >= 1 && data.message.size() <= 4000 &&
+             data.status is string && isValidApplicationStatus(data.status) &&
+             isOptionalString(data, 'trackingId', 64) &&
+             isOptionalString(data, 'trackingNumber', 64) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'union', 80) &&
+             isOptionalString(data, 'category', 100) &&
+             isOptionalString(data, 'type', 100) &&
+             isOptionalString(data, 'attachmentUrl', 2000) &&
+             isOptionalString(data, 'adminNote', 2000) &&
+             isOptionalString(data, 'scheduledDate', 120) &&
+             isValidTimestampOrMissing(data, 'serverCreatedAt') &&
+             isValidTimestampOrMissing(data, 'serverUpdatedAt');
+    }
+
+    function isValidCitizenGrievance(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 120 &&
+             data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 25 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 200 &&
+             data.details is string && data.details.size() >= 1 && data.details.size() <= 4000 &&
+             data.status is string && isValidApplicationStatus(data.status) &&
+             isOptionalString(data, 'upazila', 80);
+    }
+
+    function isValidGeneralFeedback(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 25 &&
+             data.message is string && data.message.size() >= 1 && data.message.size() <= 4000 &&
+             isOptionalString(data, 'union', 80) &&
+             isOptionalString(data, 'category', 100) &&
+             isOptionalString(data, 'attachmentUrl', 2000) &&
+             isValidTimestampOrMissing(data, 'timestamp');
+    }
+
+    function isValidAdminDoc(data, docId) {
+      return data.uid is string && data.uid == docId &&
+             data.role is string && data.role in ['super_admin', 'editor', 'application_manager'] &&
+             data.active is bool &&
+             isOptionalString(data, 'email', 150) &&
+             isOptionalString(data, 'displayName', 120) &&
+             isValidTimestampOrMissing(data, 'createdAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidAuditLog(data) {
+      return data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+             data.action is string && data.action.size() >= 1 && data.action.size() <= 100 &&
+             data.targetCollection is string && data.targetCollection.size() >= 1 && data.targetCollection.size() <= 100 &&
+             isOptionalString(data, 'targetId', 128) &&
+             isOptionalString(data, 'actorEmail', 150) &&
+             isValidTimestampOrMissing(data, 'createdAt');
+    }
+
+    function isValidUserNotificationData(data) {
+      return !('role' in data) &&
+             !('isAdmin' in data) &&
+             !('adminRole' in data) &&
+             !('active' in data) &&
+             isOptionalString(data, 'fcmToken', 500) &&
+             isOptionalString(data, 'language', 10) &&
+             (!('fcmTokens' in data) || data.fcmTokens is list) &&
+             (!('notificationPreferences' in data) || data.notificationPreferences is map) &&
+             isValidTimestampOrMissing(data, 'lastActiveAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidFcmTokenDoc(data) {
+      return data.token is string && data.token.size() >= 10 && data.token.size() <= 500 &&
+             (!('active' in data) || data.active is bool) &&
+             isOptionalString(data, 'deviceId', 128) &&
+             isOptionalString(data, 'deviceModel', 100) &&
+             isValidTimestampOrMissing(data, 'updatedAt') &&
+             isValidTimestampOrMissing(data, 'deactivatedAt');
+    }
+
+    // --- Public Read, Content-Admin Write CMS Collections ---
+    match /config/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidAppConfig(incoming());
+      allow delete: if isValidId(docId) && isSuperAdmin();
+    }
+
+    match /app_releases/{releaseId} {
+      allow get, list: if isSuperAdmin() || resource.data.status == 'published';
+      allow create: if isSuperAdmin() &&
+                    isValidAppRelease(incoming(), releaseId) &&
+                    incoming().uploadedBy == request.auth.uid;
+      allow update: if isSuperAdmin() &&
+                    isValidAppRelease(incoming(), releaseId) &&
+                    incoming().versionCode == existing().versionCode &&
+                    incoming().storagePath == existing().storagePath &&
+                    incoming().downloadUrl == existing().downloadUrl &&
+                    incoming().fileSizeBytes == existing().fileSizeBytes &&
+                    incoming().sha256 == existing().sha256 &&
+                    incoming().fileName == existing().fileName &&
+                    incoming().uploadedBy == existing().uploadedBy &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+    }
+
+    match /profile_info/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidProfileInfo(incoming());
+      allow delete: if isValidId(docId) && isSuperAdmin();
+    }
+
+    match /development_projects/{projectId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(projectId) && isContentAdmin() && isValidDevelopmentProject(incoming());
+      allow delete: if isValidId(projectId) && isContentAdmin();
+    }
+
+    match /notices/{noticeId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(noticeId) && isContentAdmin() && isValidNotice(incoming());
+      allow delete: if isValidId(noticeId) && isContentAdmin();
+    }
+
+    match /gallery_items/{itemId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(itemId) && isContentAdmin() && isValidGalleryItem(incoming());
+      allow delete: if isValidId(itemId) && isContentAdmin();
+    }
+
+    match /filter_chips/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /weather_data/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /watercraft_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /tide_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /sea_truck_updates/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /media_assets/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /media_items/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /government_reports/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /important_links/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /special_events/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /emergency_contacts/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /digital_services/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /education_resources/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /economy_opportunities/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /welfare_programs/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /union_services/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /tourism_spots/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /development_categories/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /homepage_categories/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /citizen_polls/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /daily_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /faqs/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /union_representatives/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /social_media_links/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidCmsPublishedFlag(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    // --- Public Emergency Directory + Authenticated Donor Self-Service ---
+    match /blood_donors/{donorId} {
+      allow get, list: if true;
+      allow create: if isValidId(donorId) &&
+                       isValidBloodDonor(incoming()) &&
+                       (isContentAdmin() || (isSignedIn() && incoming().userId == request.auth.uid));
+      allow update: if isValidId(donorId) &&
+                       isValidBloodDonor(incoming()) &&
+                       (isContentAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId));
+      allow delete: if isValidId(donorId) && (isContentAdmin() || isOwner(existing().userId));
+    }
+
+    // --- Private Citizen Collections (Zero-Trust Owner + Admin Isolation) ---
+    match /applications/{appId} {
+      allow get: if isValidId(appId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(appId) &&
+                       isSignedIn() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'] &&
+                       (!('adminNote' in incoming()) || incoming().adminNote == '') &&
+                       (!('scheduledDate' in incoming()) || incoming().scheduledDate == '');
+      allow update: if isValidId(appId) &&
+                       isApplicationManager() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       (isSuperAdmin() || !(existing().status in ['Resolved', 'Rejected with explanation']));
+      allow delete: if isValidId(appId) && isSuperAdmin();
+    }
+
+    match /appointments/{apptId} {
+      allow get: if isValidId(apptId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(apptId) &&
+                       isSignedIn() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'] &&
+                       (!('adminNote' in incoming()) || incoming().adminNote == '') &&
+                       (!('scheduledDate' in incoming()) || incoming().scheduledDate == '');
+      allow update: if isValidId(apptId) &&
+                       isApplicationManager() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       (isSuperAdmin() || !(existing().status in ['Resolved', 'Rejected with explanation']));
+      allow delete: if isValidId(apptId) && isSuperAdmin();
+    }
+
+    match /citizen_grievances/{grievanceId} {
+      allow get: if isValidId(grievanceId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(grievanceId) &&
+                       isSignedIn() &&
+                       isValidCitizenGrievance(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'];
+      allow update: if isValidId(grievanceId) &&
+                       isApplicationManager() &&
+                       isValidCitizenGrievance(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       (isSuperAdmin() || !(existing().status in ['Resolved', 'Rejected with explanation']));
+      allow delete: if isValidId(grievanceId) && isSuperAdmin();
+    }
+
+    match /general_feedback/{feedbackId} {
+      allow get: if isValidId(feedbackId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(feedbackId) &&
+                       isSignedIn() &&
+                       isValidGeneralFeedback(incoming()) &&
+                       incoming().userId == request.auth.uid;
+      allow update, delete: if isValidId(feedbackId) && isSuperAdmin();
+    }
+
+    match /poll_votes/{voteId} {
+      allow get: if isValidId(voteId) && (isContentAdmin() || (isSignedIn() && (resource == null || existing().userId == request.auth.uid)));
+      allow list: if isContentAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(voteId) &&
+                       isSignedIn() &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().pollId is string && incoming().pollId.size() >= 1 && incoming().pollId.size() <= 128 &&
+                       incoming().optionIndex is int && incoming().optionIndex >= 0 && incoming().optionIndex <= 20;
+      allow update: if isValidId(voteId) &&
+                       isOwner(existing().userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().pollId == existing().pollId &&
+                       incoming().optionIndex is int && incoming().optionIndex >= 0 && incoming().optionIndex <= 20;
+      allow delete: if isValidId(voteId) && (isSuperAdmin() || isOwner(existing().userId));
+    }
+
+    // --- Citizen Notification Preferences & FCM Device Tokens ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isSuperAdmin());
+      allow create, update: if isValidId(userId) && isOwner(userId) && isValidUserNotificationData(incoming());
+      allow delete: if isValidId(userId) && isSuperAdmin();
+
+      match /fcm_tokens/{tokenId} {
+        allow get, list: if isValidId(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
+        allow create, update: if isValidId(userId) && isValidId(tokenId) && isOwner(userId) && isValidFcmTokenDoc(incoming());
+        allow delete: if isValidId(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
+      }
+    }
+
+    // --- Admin RBAC & Immutable Audit Logs ---
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create, update: if isValidId(adminUid) && isSuperAdmin() && isValidAdminDoc(incoming(), adminUid);
+      allow delete: if isValidId(adminUid) && isSuperAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      allow get: if isValidId(logId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(logId) && isAdmin() && isValidAuditLog(incoming()) && incoming().actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

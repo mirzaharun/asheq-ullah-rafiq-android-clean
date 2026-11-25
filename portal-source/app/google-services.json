@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "982402541543",
+    "project_id": "asheq-ullah-rafiq-digital-p",
+    "storage_bucket": "asheq-ullah-rafiq-digital-p.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:982402541543:android:05b4cc120e18bc4f8e3f42",
+        "android_client_info": {
+          "package_name": "com.ashequllah.portal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "982402541543-mtcu14aec79lt0occeecvlr1addi4cqb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ashequllah.portal",
+            "certificate_hash": "cd08723b1079185a60c3ca4467ccc28c60450bdd"
+          }
+        },
+        {
+          "client_id": "982402541543-ibi6sdpdrerdqkbk38vpgr8omrptlt9n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqcxIYg4ItgyYoXD4ybXUcqVZDvtoHTFI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "982402541543-ibi6sdpdrerdqkbk38vpgr8omrptlt9n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

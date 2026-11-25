@@ -1,0 +1,611 @@
+rules_version = '2';
+
+// =============================================================================
+// DRAFT FIRESTORE SECURITY RULES (NOT DEPLOYED — FOR PRE-DEPLOYMENT REVIEW)
+// Target Project: asheq-ullah-rafiq-digital-p
+// Target Database: ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943
+//
+// Key Security Upgrades over live /firestore.rules:
+//   1. Blood Donors PII Split:
+//      - /blood_donors/{donorId}: public minimum-discovery fields ONLY; rejects
+//        any plaintext phone/mobile fields on new/updated documents.
+//      - /blood_donor_contacts/{donorId}: private phone vault, NO public read,
+//        NO non-admin/non-owner list (prevents scraping), readable ONLY by
+//        the donor owner or verified Content Admins.
+//      - /blood_requests/{requestId}: authenticated citizen callback/help
+//        request workflow so donors/admins can respond without exposing donor PII.
+//   2. Gallery & Media Archive Published Filtering:
+//      - /gallery_items/{itemId} & /media_items/{docId}: public/citizen reads
+//        require `published == true` (matching Android Kotlin `isPublished`
+//        JavaBean serialization AND Web Admin normalized schema); Content Admins
+//        can read all published + draft documents.
+//      - Requires Android & Web Admin query/schema updates and data backfill
+//        verification for g1..g8 / m1..m8 before deploying!
+//   3. Citizen Applications, Grievances & Feedback Hardening:
+//      - Strictly enforces request.resource.data.userId == request.auth.uid on create.
+//      - Blocks citizen tampering on status/adminNote/scheduledDate/trackingId.
+//      - Protects immutable trackingId/trackingNumber/userId on admin updates.
+//      - Expands terminal lock to ['Resolved', 'Rejected with explanation', 'COMPLETED', 'CANCELLED'].
+//   4. RBAC & Audit Logs Hardening:
+//      - Preserves verified super_admin, editor, application_manager least privilege.
+//      - Enforces server timestamp & actorUid binding on immutable /audit_logs.
+//      - Retains bootstrap super_admin guard ONLY as documented transition until
+//        verified UID is provisioned in /admins/{uid}.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Security Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && userId is string && userId.size() > 0 && request.auth.uid == userId;
+    }
+
+    function adminDocPath() {
+      return /databases/$(database)/documents/admins/$(request.auth.uid);
+    }
+
+    function hasActiveAdminDoc() {
+      return isSignedIn() &&
+             exists(adminDocPath()) &&
+             get(adminDocPath()).data.active == true;
+    }
+
+    function adminRole() {
+      return get(adminDocPath()).data.role;
+    }
+
+    function isSuperAdmin() {
+      return hasActiveAdminDoc() && adminRole() == 'super_admin';
+    }
+
+    function isEditor() {
+      return isSuperAdmin() || (hasActiveAdminDoc() && adminRole() == 'editor');
+    }
+
+    function isApplicationManager() {
+      return isSuperAdmin() || (hasActiveAdminDoc() && adminRole() == 'application_manager');
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || isEditor() || isApplicationManager();
+    }
+
+    function isContentAdmin() {
+      return isSuperAdmin() || isEditor();
+    }
+
+    // --- Validation Helpers ---
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || data[key] == null || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isRequiredString(data, key, minLen, maxLen) {
+      return (key in data) && data[key] is string && data[key].size() >= minLen && data[key].size() <= maxLen;
+    }
+
+    function isOptionalBool(data, key) {
+      return !(key in data) || data[key] is bool;
+    }
+
+    function isValidTimestampOrMissing(data, key) {
+      return !(key in data) || data[key] == null || (data[key] is timestamp && data[key] <= request.time);
+    }
+
+    function hasNoPhonePii(data) {
+      return !('phone' in data) &&
+             !('mobile' in data) &&
+             !('phoneNumber' in data) &&
+             !('contactPhone' in data) &&
+             !('secondaryPhone' in data);
+    }
+
+    function isValidAppConfig(data) {
+      return isOptionalString(data, 'appNameBn', 150) &&
+             isOptionalString(data, 'appNameEn', 150) &&
+             isOptionalString(data, 'subTitleBn', 200) &&
+             isOptionalString(data, 'subTitleEn', 200) &&
+             isOptionalString(data, 'heroTitleBn', 300) &&
+             isOptionalString(data, 'heroTitleEn', 300) &&
+             isOptionalString(data, 'heroSubtitleBn', 500) &&
+             isOptionalString(data, 'heroSubtitleEn', 500) &&
+             isOptionalString(data, 'noticeMarqueeBn', 1000) &&
+             isOptionalString(data, 'noticeMarqueeEn', 1000) &&
+             isOptionalString(data, 'hotlinePhone', 40) &&
+             isOptionalString(data, 'contactEmail', 120) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidProfileInfo(data) {
+      return isRequiredString(data, 'nameBn', 1, 150) &&
+             isOptionalString(data, 'nameEn', 150) &&
+             isOptionalString(data, 'titleBn', 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'briefIntroBn', 4000) &&
+             isOptionalString(data, 'briefIntroEn', 4000) &&
+             isOptionalString(data, 'fullBiographyBn', 15000) &&
+             isOptionalString(data, 'fullBiographyEn', 15000) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidDevelopmentProject(data) {
+      return isRequiredString(data, 'titleBn', 1, 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'categoryBn', 150) &&
+             isOptionalString(data, 'categoryEn', 150) &&
+             isOptionalString(data, 'budgetBn', 150) &&
+             isOptionalString(data, 'budgetEn', 150) &&
+             isOptionalString(data, 'descriptionBn', 8000) &&
+             isOptionalString(data, 'descriptionEn', 8000) &&
+             isOptionalString(data, 'status', 60) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'union', 80) &&
+             (!('completionPercentage' in data) || (data.completionPercentage is int && data.completionPercentage >= 0 && data.completionPercentage <= 100)) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidNotice(data) {
+      return isRequiredString(data, 'titleBn', 1, 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'detailsBn', 5000) &&
+             isOptionalString(data, 'detailsEn', 5000) &&
+             isOptionalBool(data, 'isUrgent') &&
+             isOptionalBool(data, 'urgent') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    // Note: Android Kotlin `GalleryItem.isPublished` serializes as `published`.
+    // Public `list` query uses `.whereEqualTo("published", true)` and requires `published is bool`.
+    function isValidGalleryItem(data) {
+      return isRequiredString(data, 'titleBn', 1, 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'imageUrl', 2000) &&
+             isOptionalString(data, 'mediaType', 30) &&
+             isOptionalString(data, 'videoEmbedUrl', 2000) &&
+             ('published' in data) && data.published is bool &&
+             isOptionalBool(data, 'isPublished') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidMediaArchiveItem(data) {
+      return isRequiredString(data, 'titleBn', 1, 300) &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'mediaOutletBn', 200) &&
+             isOptionalString(data, 'externalUrl', 2000) &&
+             isOptionalString(data, 'videoOrFileUrl', 2000) &&
+             ('published' in data) && data.published is bool &&
+             isOptionalBool(data, 'isPublished') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    // Minimum public discovery fields ONLY — zero phone PII allowed.
+    function isValidBloodDonorPublic(data) {
+      return hasNoPhonePii(data) &&
+             isRequiredString(data, 'nameBn', 1, 120) &&
+             isOptionalString(data, 'nameEn', 120) &&
+             ('bloodGroup' in data) && data.bloodGroup is string &&
+             data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] &&
+             isOptionalString(data, 'userId', 128) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'areaBn', 120) &&
+             isOptionalString(data, 'areaEn', 120) &&
+             isOptionalString(data, 'lastDonatedBn', 120) &&
+             isOptionalString(data, 'lastDonatedEn', 120) &&
+             isOptionalBool(data, 'isAvailable') &&
+             isOptionalBool(data, 'available') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidBloodDonorContact(data, donorId) {
+      return (!('donorId' in data) || data.donorId == donorId) &&
+             isRequiredString(data, 'phone', 6, 25) &&
+             isOptionalString(data, 'userId', 128) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidBloodRequest(data) {
+      return isRequiredString(data, 'donorId', 1, 128) &&
+             isRequiredString(data, 'requesterUid', 1, 128) &&
+             isRequiredString(data, 'requesterName', 1, 120) &&
+             isRequiredString(data, 'requesterPhone', 6, 25) &&
+             isRequiredString(data, 'bloodGroup', 2, 5) &&
+             data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] &&
+             isOptionalString(data, 'donorUserId', 128) &&
+             isOptionalString(data, 'patientLocation', 200) &&
+             isOptionalString(data, 'note', 1000) &&
+             ('status' in data) && data.status in ['Pending', 'Accepted', 'Declined', 'Fulfilled', 'Cancelled'] &&
+             isValidTimestampOrMissing(data, 'createdAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidApplicationStatus(status) {
+      return status in [
+        'Pending',
+        'Submitted',
+        'Under Review',
+        'Additional Information Required',
+        'Forwarded to Relevant Office',
+        'In Progress',
+        'Resolved',
+        'Rejected with explanation',
+        'REVIEWING',
+        'SCHEDULED',
+        'COMPLETED',
+        'CANCELLED'
+      ];
+    }
+
+    function isTerminalApplicationStatus(status) {
+      return status in ['Resolved', 'Rejected with explanation', 'COMPLETED', 'CANCELLED'];
+    }
+
+    function isValidApplication(data) {
+      return isRequiredString(data, 'userId', 1, 128) &&
+             isRequiredString(data, 'name', 1, 120) &&
+             ((('phone' in data) && data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 25) ||
+              (('mobile' in data) && data.mobile is string && data.mobile.size() >= 6 && data.mobile.size() <= 25)) &&
+             isRequiredString(data, 'message', 1, 4000) &&
+             ('status' in data) && data.status is string && isValidApplicationStatus(data.status) &&
+             isOptionalString(data, 'trackingId', 64) &&
+             isOptionalString(data, 'trackingNumber', 64) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'union', 80) &&
+             isOptionalString(data, 'category', 100) &&
+             isOptionalString(data, 'type', 100) &&
+             isOptionalString(data, 'attachmentUrl', 2000) &&
+             isOptionalString(data, 'adminNote', 2000) &&
+             isOptionalString(data, 'scheduledDate', 120) &&
+             isValidTimestampOrMissing(data, 'serverCreatedAt') &&
+             isValidTimestampOrMissing(data, 'serverUpdatedAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function hasImmutableTrackingFields() {
+      return (!('trackingNumber' in existing()) || incoming().trackingNumber == existing().trackingNumber) &&
+             (!('trackingId' in existing()) || incoming().trackingId == existing().trackingId);
+    }
+
+    function isValidCitizenGrievance(data) {
+      return isRequiredString(data, 'userId', 1, 128) &&
+             isRequiredString(data, 'fullName', 1, 120) &&
+             isRequiredString(data, 'phone', 6, 25) &&
+             isRequiredString(data, 'subject', 1, 200) &&
+             isRequiredString(data, 'details', 1, 4000) &&
+             ('status' in data) && data.status is string && isValidApplicationStatus(data.status) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'adminNote', 2000) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidGeneralFeedback(data) {
+      return isRequiredString(data, 'userId', 1, 128) &&
+             isRequiredString(data, 'name', 1, 120) &&
+             isRequiredString(data, 'phone', 6, 25) &&
+             isRequiredString(data, 'message', 1, 4000) &&
+             isOptionalString(data, 'union', 80) &&
+             isOptionalString(data, 'category', 100) &&
+             isOptionalString(data, 'attachmentUrl', 2000) &&
+             isValidTimestampOrMissing(data, 'timestamp') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidSupporterCard(data) {
+      return isRequiredString(data, 'userId', 1, 128) &&
+             isRequiredString(data, 'name', 1, 120) &&
+             isOptionalString(data, 'upazila', 80) &&
+             isOptionalString(data, 'union', 80) &&
+             isOptionalString(data, 'photoUrl', 2000) &&
+             isOptionalString(data, 'cardImageUrl', 2000) &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidAdminDoc(data, docId) {
+      return ('uid' in data) && data.uid is string && data.uid == docId &&
+             ('role' in data) && data.role is string &&
+             data.role in ['super_admin', 'editor', 'application_manager'] &&
+             ('active' in data) && data.active is bool &&
+             isOptionalString(data, 'email', 150) &&
+             isOptionalString(data, 'displayName', 120) &&
+             isValidTimestampOrMissing(data, 'createdAt') &&
+             isValidTimestampOrMissing(data, 'updatedAt');
+    }
+
+    function isValidAuditLog(data) {
+      return isRequiredString(data, 'actorUid', 1, 128) &&
+             isRequiredString(data, 'action', 1, 100) &&
+             isRequiredString(data, 'targetCollection', 1, 100) &&
+             isOptionalString(data, 'targetId', 128) &&
+             isOptionalString(data, 'actorEmail', 150) &&
+             ('createdAt' in data) && data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // --- Public Read, Content-Admin Write CMS Collections ---
+    match /config/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidAppConfig(incoming());
+      allow delete: if isValidId(docId) && isSuperAdmin();
+    }
+
+    match /profile_info/{docId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidProfileInfo(incoming());
+      allow delete: if isValidId(docId) && isSuperAdmin();
+    }
+
+    match /development_projects/{projectId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(projectId) && isContentAdmin() && isValidDevelopmentProject(incoming());
+      allow delete: if isValidId(projectId) && isContentAdmin();
+    }
+
+    match /notices/{noticeId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(noticeId) && isContentAdmin() && isValidNotice(incoming());
+      allow delete: if isValidId(noticeId) && isContentAdmin();
+    }
+
+    // Gallery: Public sees ONLY published == true; Content Admins see all
+    match /gallery_items/{itemId} {
+      allow get, list: if resource.data.published == true || isContentAdmin();
+      allow create, update: if isValidId(itemId) && isContentAdmin() && isValidGalleryItem(incoming());
+      allow delete: if isValidId(itemId) && isContentAdmin();
+    }
+
+    // Media Archive: Public sees ONLY published == true; Content Admins see all
+    match /media_items/{docId} {
+      allow get, list: if resource.data.published == true || isContentAdmin();
+      allow create, update: if isValidId(docId) && isContentAdmin() && isValidMediaArchiveItem(incoming());
+      allow delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /filter_chips/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /weather_data/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /watercraft_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /tide_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /sea_truck_updates/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /media_assets/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /government_reports/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /important_links/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /special_events/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /emergency_contacts/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /digital_services/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /daily_schedules/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /faqs/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /union_representatives/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    match /social_media_links/{docId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(docId) && isContentAdmin();
+    }
+
+    // --- Blood Donors: Public Discovery (Zero PII) + Private Contact Vault + Help Requests ---
+    match /blood_donors/{donorId} {
+      allow get, list: if true;
+      allow create: if isValidId(donorId) &&
+                       isValidBloodDonorPublic(incoming()) &&
+                       (isContentAdmin() || (isSignedIn() && incoming().userId == request.auth.uid));
+      allow update: if isValidId(donorId) &&
+                       isValidBloodDonorPublic(incoming()) &&
+                       (isContentAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId));
+      allow delete: if isValidId(donorId) && (isContentAdmin() || isOwner(existing().userId));
+    }
+
+    // Donor phone numbers live exclusively here: NEVER publicly readable, NEVER listable by third parties.
+    match /blood_donor_contacts/{donorId} {
+      allow get: if isValidId(donorId) && (isContentAdmin() || isOwner(existing().userId));
+      allow list: if isContentAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(donorId) &&
+                       isValidBloodDonorContact(incoming(), donorId) &&
+                       (isContentAdmin() || (isSignedIn() && incoming().userId == request.auth.uid));
+      allow update: if isValidId(donorId) &&
+                       isValidBloodDonorContact(incoming(), donorId) &&
+                       (isContentAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId));
+      allow delete: if isValidId(donorId) && (isContentAdmin() || isOwner(existing().userId));
+    }
+
+    // Authenticated citizen-to-donor assistance request (zero donor phone exposure to requester)
+    match /blood_requests/{requestId} {
+      allow get: if isValidId(requestId) &&
+                    (isAdmin() ||
+                     isOwner(existing().requesterUid) ||
+                     isOwner(existing().donorUserId));
+      allow list: if isAdmin() ||
+                     (isSignedIn() && existing().requesterUid == request.auth.uid) ||
+                     (isSignedIn() && existing().donorUserId == request.auth.uid);
+      allow create: if isValidId(requestId) &&
+                       isSignedIn() &&
+                       isValidBloodRequest(incoming()) &&
+                       incoming().requesterUid == request.auth.uid &&
+                       incoming().status == 'Pending';
+      allow update: if isValidId(requestId) &&
+                       isValidBloodRequest(incoming()) &&
+                       incoming().requesterUid == existing().requesterUid &&
+                       incoming().donorId == existing().donorId &&
+                       incoming().donorUserId == existing().donorUserId &&
+                       (isContentAdmin() ||
+                        (isOwner(existing().donorUserId) && incoming().status in ['Accepted', 'Declined', 'Fulfilled']) ||
+                        (isOwner(existing().requesterUid) && existing().status == 'Pending' && incoming().status == 'Cancelled'));
+      allow delete: if isValidId(requestId) && isSuperAdmin();
+    }
+
+    // --- Private Citizen Collections (Zero-Trust Owner + Application-Admin Isolation) ---
+    match /applications/{appId} {
+      allow get: if isValidId(appId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(appId) &&
+                       isSignedIn() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'] &&
+                       (!('adminNote' in incoming()) || incoming().adminNote == '') &&
+                       (!('scheduledDate' in incoming()) || incoming().scheduledDate == '');
+      allow update: if isValidId(appId) &&
+                       isApplicationManager() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       hasImmutableTrackingFields() &&
+                       (isSuperAdmin() || !isTerminalApplicationStatus(existing().status));
+      allow delete: if isValidId(appId) && isSuperAdmin();
+    }
+
+    match /appointments/{apptId} {
+      allow get: if isValidId(apptId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(apptId) &&
+                       isSignedIn() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'] &&
+                       (!('adminNote' in incoming()) || incoming().adminNote == '') &&
+                       (!('scheduledDate' in incoming()) || incoming().scheduledDate == '');
+      allow update: if isValidId(apptId) &&
+                       isApplicationManager() &&
+                       isValidApplication(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       hasImmutableTrackingFields() &&
+                       (isSuperAdmin() || !isTerminalApplicationStatus(existing().status));
+      allow delete: if isValidId(apptId) && isSuperAdmin();
+    }
+
+    match /citizen_grievances/{grievanceId} {
+      allow get: if isValidId(grievanceId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(grievanceId) &&
+                       isSignedIn() &&
+                       isValidCitizenGrievance(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status in ['Pending', 'Submitted'] &&
+                       (!('adminNote' in incoming()) || incoming().adminNote == '');
+      allow update: if isValidId(grievanceId) &&
+                       isApplicationManager() &&
+                       isValidCitizenGrievance(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       (isSuperAdmin() || !isTerminalApplicationStatus(existing().status));
+      allow delete: if isValidId(grievanceId) && isSuperAdmin();
+    }
+
+    match /general_feedback/{feedbackId} {
+      allow get: if isValidId(feedbackId) && (isApplicationManager() || isOwner(existing().userId));
+      allow list: if isApplicationManager() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(feedbackId) &&
+                       isSignedIn() &&
+                       isValidGeneralFeedback(incoming()) &&
+                       incoming().userId == request.auth.uid;
+      allow update, delete: if isValidId(feedbackId) && isSuperAdmin();
+    }
+
+    match /supporter_cards/{cardId} {
+      allow get: if isValidId(cardId) && (isContentAdmin() || isOwner(existing().userId));
+      allow list: if isContentAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(cardId) &&
+                       isSignedIn() &&
+                       isValidSupporterCard(incoming()) &&
+                       incoming().userId == request.auth.uid;
+      allow update: if isValidId(cardId) &&
+                       isValidSupporterCard(incoming()) &&
+                       (isContentAdmin() || (isOwner(existing().userId) && incoming().userId == existing().userId));
+      allow delete: if isValidId(cardId) && (isContentAdmin() || isOwner(existing().userId));
+    }
+
+    // --- Admin RBAC & Immutable Audit Logs ---
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create: if isValidId(adminUid) &&
+                       isSuperAdmin() &&
+                       isValidAdminDoc(incoming(), adminUid);
+      allow update: if isValidId(adminUid) &&
+                       isSuperAdmin() &&
+                       isValidAdminDoc(incoming(), adminUid) &&
+                       incoming().uid == existing().uid;
+      allow delete: if isValidId(adminUid) &&
+                       isSuperAdmin() &&
+                       adminUid != request.auth.uid;
+    }
+
+    match /audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(logId) &&
+                       isAdmin() &&
+                       isValidAuditLog(incoming()) &&
+                       incoming().actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

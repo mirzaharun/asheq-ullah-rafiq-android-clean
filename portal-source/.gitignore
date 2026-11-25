@@ -1,0 +1,30 @@
+# Built application & build caches
+*.iml
+.gradle/
+.kotlin/
+build/
+*/build/
+.build-outputs/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local configuration & environment
+local.properties
+.env
+*-debug.log
+*.keystore
+*.jks
+# Android Studio / IntelliJ IDEA
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ensure Gradle Wrapper & Version Catalog are explicitly tracked
+!gradlew
+!gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradle/libs.versions.toml

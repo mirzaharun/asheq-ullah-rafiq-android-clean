@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asheq Ullah Rafiq Portal - Web Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Hind Siliguri', 'Inter', sans-serif; }
+    .bg-royal-blue { background-color: #0D47A1; }
+    .text-royal-blue { color: #0D47A1; }
+    .border-royal-blue { border-color: #0D47A1; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Header Navigation -->
+  <header class="bg-royal-blue text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full border-2 border-amber-400 overflow-hidden bg-white">
+          <img src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=200" alt="Avatar" id="headerAvatar" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">আশেক উল্লাহ রফিক • কেন্দ্রীয় এডমিন প্যানেল</h1>
+          <p class="text-xs text-blue-200">Moheshkhali & Kutubdia Development & Public Service CMS</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span id="firestoreStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+          <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+          Firestore Connected
+        </span>
+        <button onclick="seedAllDataToFirestore()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center shadow">
+          <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> প্রাথমিক ডেটা সিড (Seed)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 py-6 flex-1 flex flex-col md:flex-row gap-6 w-full">
+    <!-- Sidebar Tabs -->
+    <aside class="w-full md:w-64 bg-white rounded-2xl shadow-sm border border-slate-200 p-3 h-fit">
+      <nav class="space-y-1">
+        <button onclick="switchTab('home')" id="tab-btn-home" class="tab-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition bg-blue-50 text-royal-blue border border-blue-200">
+          <i class="fa-solid fa-house w-5"></i>
+          <span>১. হোম স্ক্রিন (Home)</span>
+        </button>
+        <button onclick="switchTab('development')" id="tab-btn-development" class="tab-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50">
+          <i class="fa-solid fa-chart-line w-5"></i>
+          <span>২. উন্নয়ন প্রকল্প (Development)</span>
+        </button>
+        <button onclick="switchTab('gallery')" id="tab-btn-gallery" class="tab-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50">
+          <i class="fa-solid fa-images w-5"></i>
+          <span>৩. ফটো ও ভিডিও (Gallery)</span>
+        </button>
+        <button onclick="switchTab('profile')" id="tab-btn-profile" class="tab-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50">
+          <i class="fa-solid fa-user-tie w-5"></i>
+          <span>৪. পরিচিতি ও অর্জন (Profile)</span>
+        </button>
+        <button onclick="switchTab('contact')" id="tab-btn-contact" class="tab-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50">
+          <i class="fa-solid fa-headset w-5"></i>
+          <span>৫. নাগরিক সেবা ও অভিযোগ (Contact)</span>
+        </button>
+      </nav>
+      <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-400 px-2">
+        <p>Database ID:</p>
+        <p class="font-mono text-[10px] break-all text-slate-500">ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 space-y-6">
+
+      <!-- ================= 1. HOME SCREEN SECTION ================= -->
+      <section id="tab-home" class="tab-pane bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-royal-blue">হোম স্ক্রিন কনফিগারেশন ও ব্যানার</h2>
+            <p class="text-xs text-slate-500">শীর্ষ ব্যানার, স্লোগান, কোটেশন এবং ক্যাটাগরি ফিল্টার চিপস পরিচালনা করুন</p>
+          </div>
+          <button onclick="saveHomeConfig()" class="bg-royal-blue text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-blue-800 transition">
+            <i class="fa-solid fa-floppy-disk mr-1.5"></i> পরিবর্তন সংরক্ষণ
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">অ্যাপের শিরোনাম (বাংলা)</label>
+            <input type="text" id="home_appNameBn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="আশেক উল্লাহ রফিক">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">App Title (English)</label>
+            <input type="text" id="home_appNameEn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="Asheq Ullah Rafiq">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">হিরো ব্যানার প্রধান শিরোনাম</label>
+            <input type="text" id="home_heroTitleBn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="মহেশখালী-কুতুবদিয়ার উন্নয়ন ও অগ্রযাত্রা">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">দশক ব্যাজ টেক্সট</label>
+            <input type="text" id="home_decadeBadgeBn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="২০১৪ – ২০২৪">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-bold text-slate-600 mb-1">হিরো ব্যানার সাবটাইটেল</label>
+            <input type="text" id="home_heroSubtitleBn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="সামাজিক, অর্থনৈতিক ও অবকাঠামোগত উন্নয়নের এক দশক">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-bold text-slate-600 mb-1">কোটেশন টেক্সট (Quote Section)</label>
+            <textarea id="home_quoteTextBn" rows="2" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">উন্নয়ন মানে শুধু অবকাঠামো নয়, উন্নয়ন মানে মানুষের জীবনমানের পরিবর্তন।</textarea>
+          </div>
+        </div>
+
+        <!-- Dynamic Filter Chips Manager -->
+        <div class="mt-6 pt-6 border-t border-slate-100">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800">ডাইনামিক ফিল্টার চিপস (Filter Chips)</h3>
+              <p class="text-xs text-slate-500">হোম ও উন্নয়ন পেজের অনুভূমিক স্ক্রোল ক্যাটাগরি বাটন</p>
+            </div>
+            <button onclick="openAddChipModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center">
+              <i class="fa-solid fa-plus mr-1"></i> নতুন চিপ যোগ
+            </button>
+          </div>
+          <div id="chipsContainer" class="flex flex-wrap gap-2">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. DEVELOPMENT SCREEN SECTION ================= -->
+      <section id="tab-development" class="tab-pane hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-royal-blue">উন্নয়ন মেগা প্রকল্প ও সেক্টর কার্ড</h2>
+            <p class="text-xs text-slate-500">গভীর সমুদ্র বন্দর, বিদ্যুৎ কেন্দ্র, সাবমেরিন ক্যাবল ও অবকাঠামো প্রকল্প পরিচালনা</p>
+          </div>
+          <button onclick="openAddProjectModal()" class="bg-royal-blue text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-blue-800 transition">
+            <i class="fa-solid fa-plus mr-1.5"></i> নতুন প্রকল্প যোগ
+          </button>
+        </div>
+
+        <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- ================= 3. GALLERY SCREEN SECTION ================= -->
+      <section id="tab-gallery" class="tab-pane hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-royal-blue">ফটো ও ভিডিও গ্যালারি</h2>
+            <p class="text-xs text-slate-500">উন্নয়ন কার্যক্রম, পরিদর্শন ও ভিডিও ডকুমেন্টারি লিংক ম্যানেজমেন্ট</p>
+          </div>
+          <button onclick="openAddGalleryModal()" class="bg-royal-blue text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-blue-800 transition">
+            <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> মিডিয়া আইটেম যোগ
+          </button>
+        </div>
+
+        <div id="galleryGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- ================= 4. PROFILE SCREEN SECTION ================= -->
+      <section id="tab-profile" class="tab-pane hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-royal-blue">পরিচিতি, জীবনী ও রাজনৈতিক অর্জন কন্ট্রোল</h2>
+            <p class="text-xs text-slate-500">ফায়ারস্টোর কালেকশন: <code class="bg-slate-100 text-royal-blue px-1.5 py-0.5 rounded font-mono">profile_info</code> (ডকুমেন্ট: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">main</code>)</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadProfileData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-semibold">
+              <i class="fa-solid fa-rotate mr-1"></i> রিলোড
+            </button>
+            <button onclick="saveProfileData()" class="bg-royal-blue text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-blue-800 transition">
+              <i class="fa-solid fa-floppy-disk mr-1.5"></i> প্রোফাইল সংরক্ষণ
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Basic Profile & Photos -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <h3 class="text-sm font-bold text-royal-blue flex items-center">
+            <i class="fa-solid fa-user-tie mr-2"></i> ১. মূল প্রোফাইল ও ব্যানার তথ্য
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">নেতার পূর্ণ নাম (বাংলা)</label>
+              <input type="text" id="prof_name_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="আশেক উল্লাহ রফিক">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">নেতার পূর্ণ নাম (English)</label>
+              <input type="text" id="prof_name_en" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="Asheq Ullah Rafiq">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">পদবী ও পরিচিতি (বাংলা)</label>
+              <input type="text" id="prof_title_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="সাবেক সংসদ সদস্য, কক্সবাজার-২ (মহেশখালী-কুতুবদিয়া)">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">পদবী ও পরিচিতি (English)</label>
+              <input type="text" id="prof_title_en" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="Former Member of Parliament, Cox's Bazar-2 (Moheshkhali-Kutubdia)">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">জন্ম তারিখ (বাংলা)</label>
+              <input type="text" id="prof_dob_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="জন্ম: ২৪ জুলাই ১৯৭১">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">জন্ম তারিখ (English)</label>
+              <input type="text" id="prof_dob_en" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="Born: July 24, 1971">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">জন্মস্থান (বাংলা)</label>
+              <input type="text" id="prof_birthplace_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="জন্মস্থান: কক্সবাজার">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">জন্মস্থান (English)</label>
+              <input type="text" id="prof_birthplace_en" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="Birthplace: Cox's Bazar">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">প্রোফাইল ছবি URL</label>
+              <input type="text" id="prof_photo_url" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white font-mono" value="drawable:asheq_avatar">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">শীর্ষ ব্যানার ছবি URL</label>
+              <input type="text" id="prof_banner_url" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white font-mono" value="drawable:moheshkhali_banner">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Brief Intro Section ("সংক্ষিপ্ত পরিচিতি") -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <h3 class="text-sm font-bold text-royal-blue flex items-center">
+            <i class="fa-solid fa-file-lines mr-2"></i> ২. সংক্ষিপ্ত পরিচিতি (Brief Intro Section)
+          </h3>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">সংক্ষিপ্ত পরিচিতি (বাংলা)</label>
+            <textarea id="prof_intro_bn" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Brief Intro (English)</label>
+            <textarea id="prof_intro_en" rows="3" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white"></textarea>
+          </div>
+        </div>
+
+        <!-- 3. Four Interactive Milestone Cards -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <h3 class="text-sm font-bold text-royal-blue flex items-center">
+            <i class="fa-solid fa-layer-group mr-2"></i> ৩. ৪টি ইন্টারঅ্যাক্টিভ মাইলফলক কার্ড
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Card 1 -->
+            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+              <span class="text-xs font-bold text-sky-600">কার্ড ১: প্রারম্ভিক জীবন ও শিক্ষা</span>
+              <input type="text" id="prof_early_title_bn" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold" value="প্রারম্ভিক জীবন ও শিক্ষা">
+              <textarea id="prof_early_content_bn" rows="3" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="বিস্তারিত বিবরণ (বাংলা)"></textarea>
+              <textarea id="prof_early_content_en" rows="2" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="English description"></textarea>
+            </div>
+            <!-- Card 2 -->
+            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+              <span class="text-xs font-bold text-purple-600">কার্ড ২: ছাত্ররাজনীতি ও সাংগঠনিক দায়িত্ব</span>
+              <input type="text" id="prof_student_title_bn" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold" value="ছাত্ররাজনীতি ও সাংগঠনিক দায়িত্ব">
+              <textarea id="prof_student_content_bn" rows="3" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="বিস্তারিত বিবরণ (বাংলা)"></textarea>
+              <textarea id="prof_student_content_en" rows="2" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="English description"></textarea>
+            </div>
+            <!-- Card 3 -->
+            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+              <span class="text-xs font-bold text-amber-600">কার্ড ৩: জাতীয় সংসদে দায়িত্ব পালন</span>
+              <input type="text" id="prof_parl_title_bn" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold" value="জাতীয় সংসদে দায়িত্ব পালন">
+              <textarea id="prof_parl_content_bn" rows="3" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="১০ম, ১১শ ও ১২শ সংসদের ভূমিকা"></textarea>
+              <textarea id="prof_parl_content_en" rows="2" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="English description"></textarea>
+            </div>
+            <!-- Card 4 -->
+            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+              <span class="text-xs font-bold text-emerald-600">কার্ড ৪: জনসংযোগ ও প্রাতিষ্ঠানিক কর্মকাণ্ড</span>
+              <input type="text" id="prof_public_title_bn" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold" value="জনসংযোগ ও প্রাতিষ্ঠানিক কর্মকাণ্ড">
+              <textarea id="prof_public_content_bn" rows="3" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="মেগা প্রকল্প, প্রতিষ্ঠান ও সমাজসেবা"></textarea>
+              <textarea id="prof_public_content_en" rows="2" class="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="English description"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Personal & Professional Key-Values Table -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <h3 class="text-sm font-bold text-royal-blue flex items-center">
+            <i class="fa-solid fa-table-list mr-2"></i> ৪. ব্যক্তিগত ও পেশাগত তথ্য ছক (Key-Values Table)
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">শিক্ষাগত যোগ্যতা</label>
+              <input type="text" id="prof_edu_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="বি.কম (অনার্স), এম.কম (হিসাববিজ্ঞান), চট্টগ্রাম সরকারি কমার্স কলেজ">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">পেশা</label>
+              <input type="text" id="prof_profession_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="রাজনীতিবিদ ও ব্যবসায়ী">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">রাজনৈতিক দল</label>
+              <input type="text" id="prof_party_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="বাংলাদেশ আওয়ামী লীগ">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">নির্বাচনী এলাকা</label>
+              <input type="text" id="prof_constituency_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="কক্সবাজার-২ (মহেশখালী–কুতুবদিয়া)">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">সংসদ সদস্য মেয়াদ (Parliament Terms)</label>
+              <input type="text" id="prof_terms_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="১০ম, ১১শ ও ১২শ জাতীয় সংসদ (২০১৪ – ২০২৪)">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">ছাত্র সংসদ নেতৃত্ব (VP & GS History)</label>
+              <input type="text" id="prof_union_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="সাবেক ভিপি ও জিএস, চট্টগ্রাম সরকারি কমার্স কলেজ ছাত্র সংসদ">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-bold text-slate-600 mb-1">বিশ্ববিদ্যালয় সিনেট সদস্য পদ</label>
+              <input type="text" id="prof_senate_bn" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white" value="সাবেক সিনেট সদস্য, চট্টগ্রাম বিশ্ববিদ্যালয়">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Full Biography Modal Text ("সম্পূর্ণ জীবনী") -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+          <h3 class="text-sm font-bold text-royal-blue flex items-center">
+            <i class="fa-solid fa-book-open mr-2"></i> ৫. সম্পূর্ণ জীবনবৃত্তান্ত ডায়ালগ টেক্সট (Full Biography)
+          </h3>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">সম্পূর্ণ জীবনী টেক্সট (বাংলা)</label>
+            <textarea id="prof_full_bio_bn" rows="5" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Full Biography Text (English)</label>
+            <textarea id="prof_full_bio_en" rows="4" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 5. CONTACT & CITIZEN GRIEVANCE SECTION ================= -->
+      <section id="tab-contact" class="tab-pane hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-royal-blue">নাগরিক সেবা ও আবেদন ডেস্ক (Grievances)</h2>
+            <p class="text-xs text-slate-500">দ্বীপবাসীর আবেদন, অভিযোগ ও মতামত সরাসরি তদারকি ও নিষ্পত্তি</p>
+          </div>
+          <button onclick="fetchGrievances()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold">
+            <i class="fa-solid fa-rotate mr-1"></i> রিফ্রেশ
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-xs font-bold text-slate-700 uppercase border-y border-slate-200">
+              <tr>
+                <th class="px-4 py-3">নাগরিকের নাম</th>
+                <th class="px-4 py-3">ফোন নম্বর</th>
+                <th class="px-4 py-3">উপজেলা</th>
+                <th class="px-4 py-3">বিষয়</th>
+                <th class="px-4 py-3">অবস্থা (Status)</th>
+                <th class="px-4 py-3 text-right">পদক্ষেপ</th>
+              </tr>
+            </thead>
+            <tbody id="grievanceTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl transform translate-y-24 opacity-0 transition duration-300 z-50 flex items-center space-x-2 text-sm">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMessage">সফলভাবে সংরক্ষিত হয়েছে!</span>
+  </div>
+
+  <!-- Client-side Firestore JS Controller -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      projectId: "asheq-ullah-rafiq-digital-p",
+      apiKey: "AIzaSyBqcxIYg4ItgyYoXD4ybXUcqVZDvtoHTFI",
+      storageBucket: "asheq-ullah-rafiq-digital-p.firebasestorage.app",
+      appId: "1:982402541543:android:05b4cc120e18bc4f8e3f42"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app, "ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943");
+
+    window.db = db;
+    window.setDoc = setDoc;
+    window.doc = doc;
+    window.collection = collection;
+    window.getDocs = getDocs;
+    window.getDoc = getDoc;
+    window.updateDoc = updateDoc;
+    window.deleteDoc = deleteDoc;
+    window.serverTimestamp = serverTimestamp;
+
+    // Load initial data
+    window.addEventListener("DOMContentLoaded", () => {
+      loadHomeConfig();
+      loadChips();
+      loadProjects();
+      loadGallery();
+      loadProfileData();
+      fetchGrievances();
+    });
+  </script>
+
+  <script>
+    // Tab switching logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-50', 'text-royal-blue', 'border', 'border-blue-200');
+        btn.classList.add('text-slate-600');
+      });
+
+      const activePane = document.getElementById(`tab-${tabId}`);
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activePane) activePane.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.classList.add('bg-blue-50', 'text-royal-blue', 'border', 'border-blue-200');
+        activeBtn.classList.remove('text-slate-600');
+      }
+      if (tabId === 'profile' && window.loadProfileData) {
+        window.loadProfileData();
+      }
+    }
+
+    function showToast(msg, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      toastMsg.innerText = msg;
+      toastIcon.className = isSuccess ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-solid fa-circle-exclamation text-rose-400';
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3000);
+    }
+
+    // Default In-Memory Storage & Firestore Bridge
+    let appConfig = {
+      appNameBn: "আশেক উল্লাহ রফিক",
+      appNameEn: "Asheq Ullah Rafiq",
+      heroTitleBn: "মহেশখালী-কুতুবদিয়ার উন্নয়ন ও অগ্রযাত্রা",
+      heroSubtitleBn: "সামাজিক, অর্থনৈতিক ও অবকাঠামোগত উন্নয়নের এক দশক",
+      decadeBadgeBn: "২০১৪ – ২০২৪",
+      quoteTextBn: "উন্নয়ন মানে শুধু অবকাঠামো নয়, উন্নয়ন মানে মানুষের জীবনমানের পরিবর্তন।"
+    };
+
+    let filterChips = [
+      { id: "all", nameBn: "সবকিছু", nameEn: "All", isActive: true },
+      { id: "mega", nameBn: "বড় প্রকল্প", nameEn: "Mega Projects", isActive: true },
+      { id: "road", nameBn: "সড়ক ও যোগাযোগ", nameEn: "Roads & Transport", isActive: true },
+      { id: "power", nameBn: "বিদ্যুৎ ও জ্বালানি", nameEn: "Power & Energy", isActive: true },
+      { id: "edu", nameBn: "শিক্ষা ও স্বাস্থ্য", nameEn: "Education & Health", isActive: true }
+    ];
+
+    let projects = [
+      { id: "port", titleBn: "গভীর সমুদ্রবন্দর", subtitleBn: "মাতারবাড়ি ১৮.৫ মি. ড্রাফট", category: "বড় প্রকল্প", completion: 88, budget: "১৭,৭৭৭ কোটি" },
+      { id: "power", titleBn: "বিদ্যুৎ ও জ্বালানি", subtitleBn: "১২০০ মেগাওয়াট আল্ট্রা সুপার", category: "বিদ্যুৎ ও জ্বালানি", completion: 95, budget: "৫১,৮৫৪ কোটি" },
+      { id: "road", titleBn: "সড়ক ও যোগাযোগ", subtitleBn: "গোরকঘাটা সেতু ও বেড়িবাঁধ", category: "সড়ক ও যোগাযোগ", completion: 85, budget: "৮৫০ কোটি" },
+      { id: "kutubdia", titleBn: "কুতুবদিয়ার উন্নয়ন", subtitleBn: "সাবমেরিন ক্যাবল ও বাতিঘর", category: "বড় প্রকল্প", completion: 100, budget: "৪০০ কোটি" },
+      { id: "ez", titleBn: "অর্থনৈতিক অঞ্চল", subtitleBn: "ধলঘাটা বিশেষ অর্থনৈতিক অঞ্চল", category: "বড় প্রকল্প", completion: 75, budget: "৩,২০০ কোটি" },
+      { id: "edu", titleBn: "শিক্ষা ও স্বাস্থ্য", subtitleBn: "আধুনিক হাসপাতাল ও কলেজ", category: "শিক্ষা ও স্বাস্থ্য", completion: 90, budget: "১,১৫০ কোটি" }
+    ];
+
+    let gallery = [
+      { id: "g1", titleBn: "মৈনাক পাহাড়ের চূড়ায় আদিনাথ মন্দির", eventTag: "ঐতিহ্য ও পর্যটন", type: "PHOTO", date: "২০২৬" },
+      { id: "g2", titleBn: "মাতারবাড়ি গভীর সমুদ্র বন্দর ও চ্যানেল উদ্বোধন", eventTag: "উন্নয়ন মেগা প্রকল্প", type: "VIDEO", date: "২০২৬" },
+      { id: "g3", titleBn: "কুতুবদিয়া সাবমেরিন ক্যাবল সংযোগ সমাবেশ", eventTag: "জনকল্যাণ", type: "PHOTO", date: "২০২৬" }
+    ];
+
+    let grievances = [
+      { id: "1", name: "মোহাম্মদ রফিক", phone: "01819123456", upazila: "মহেশখালী", subject: "গোরকঘাটা সংযোগ সড়কের সংস্কার", status: "Pending" },
+      { id: "2", name: "আলী আকবর", phone: "01711223344", upazila: "কুতুবদিয়া", subject: "উপকূলীয় বেড়িবাঁধের সুরক্ষা সিসি ব্লক বৃদ্ধি", status: "Under Review" }
+    ];
+
+    async function loadHomeConfig() {
+      if (window.db) {
+        try {
+          const docRef = window.doc(window.db, "config", "app");
+          const snap = await window.getDoc(docRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            appConfig = { ...appConfig, ...data };
+          }
+        } catch(e) { console.log(e); }
+      }
+      document.getElementById('home_appNameBn').value = appConfig.appNameBn;
+      document.getElementById('home_appNameEn').value = appConfig.appNameEn;
+      document.getElementById('home_heroTitleBn').value = appConfig.heroTitleBn;
+      document.getElementById('home_heroSubtitleBn').value = appConfig.heroSubtitleBn;
+      document.getElementById('home_decadeBadgeBn').value = appConfig.decadeBadgeBn;
+      document.getElementById('home_quoteTextBn').value = appConfig.quoteTextBn;
+    }
+
+    async function saveHomeConfig() {
+      appConfig.appNameBn = document.getElementById('home_appNameBn').value;
+      appConfig.appNameEn = document.getElementById('home_appNameEn').value;
+      appConfig.heroTitleBn = document.getElementById('home_heroTitleBn').value;
+      appConfig.heroSubtitleBn = document.getElementById('home_heroSubtitleBn').value;
+      appConfig.decadeBadgeBn = document.getElementById('home_decadeBadgeBn').value;
+      appConfig.quoteTextBn = document.getElementById('home_quoteTextBn').value;
+
+      if (window.db) {
+        try {
+          await window.setDoc(window.doc(window.db, "config", "app"), appConfig, { merge: true });
+        } catch(e) { console.log(e); }
+      }
+      showToast("হোম কনফিগারেশন ফায়ারস্টোরে সংরক্ষিত হয়েছে!");
+    }
+
+    function renderChips() {
+      const container = document.getElementById('chipsContainer');
+      container.innerHTML = filterChips.map((chip, idx) => `
+        <div class="inline-flex items-center bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700">
+          <span>${chip.nameBn}</span>
+          <button onclick="removeChip(${idx})" class="ml-2 text-rose-500 hover:text-rose-700"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      `).join('');
+    }
+
+    function openAddChipModal() {
+      const name = prompt("নতুন ক্যাটাগরি চিপসের নাম লিখুন (যেমন: মৎস্য ও কৃষি):");
+      if (name && name.trim()) {
+        const newChip = { id: "chip_" + Date.now(), nameBn: name.trim(), nameEn: name.trim(), isActive: true };
+        filterChips.push(newChip);
+        renderChips();
+        if (window.db) {
+          window.setDoc(window.doc(window.db, "filter_chips", newChip.id), newChip);
+        }
+        showToast("নতুন ফিল্টার চিপ যোগ করা হয়েছে!");
+      }
+    }
+
+    function removeChip(idx) {
+      const chip = filterChips[idx];
+      filterChips.splice(idx, 1);
+      renderChips();
+      if (window.db && chip.id) {
+        window.deleteDoc(window.doc(window.db, "filter_chips", chip.id));
+      }
+      showToast("চিপ মুছে ফেলা হয়েছে!");
+    }
+
+    async function loadChips() {
+      if (window.db) {
+        try {
+          const snap = await window.getDocs(window.collection(window.db, "filter_chips"));
+          if (!snap.empty) {
+            filterChips = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          }
+        } catch(e) { console.log(e); }
+      }
+      renderChips();
+    }
+
+    function renderProjects() {
+      const grid = document.getElementById('projectsGrid');
+      grid.innerHTML = projects.map((p, idx) => `
+        <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-xs font-bold text-royal-blue bg-blue-100 px-2.5 py-1 rounded-lg">${p.category}</span>
+              <span class="text-xs font-bold text-emerald-600">${p.completion}% সম্পন্ন</span>
+            </div>
+            <h4 class="font-bold text-slate-900 text-base">${p.titleBn}</h4>
+            <p class="text-xs text-slate-500 mt-1">${p.subtitleBn}</p>
+            <p class="text-xs font-semibold text-slate-600 mt-2">বাজেট: ${p.budget}</p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
+            <button onclick="editProjectProgress(${idx})" class="text-xs font-bold text-royal-blue hover:underline">
+              <i class="fa-solid fa-pen-to-square mr-1"></i> অগ্রগতি হালনাগাদ
+            </button>
+            <button onclick="removeProject(${idx})" class="text-xs font-bold text-rose-500 hover:underline">
+              <i class="fa-solid fa-trash mr-1"></i> মুছুন
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function editProjectProgress(idx) {
+      const p = projects[idx];
+      const newProgress = prompt(`'${p.titleBn}' এর নতুন অগ্রগতি শতকরা লিখুন (০-১০০):`, p.completion);
+      if (newProgress !== null && !isNaN(newProgress)) {
+        p.completion = parseInt(newProgress);
+        renderProjects();
+        if (window.db) {
+          window.setDoc(window.doc(window.db, "development_projects", p.id), p, { merge: true });
+        }
+        showToast("প্রকল্প অগ্রগতি আপডেট সম্পন্ন!");
+      }
+    }
+
+    function removeProject(idx) {
+      const p = projects[idx];
+      if (confirm(`'${p.titleBn}' মুছে ফেলতে চান?`)) {
+        projects.splice(idx, 1);
+        renderProjects();
+        if (window.db) {
+          window.deleteDoc(window.doc(window.db, "development_projects", p.id));
+        }
+        showToast("প্রকল্প সরানো হয়েছে!");
+      }
+    }
+
+    function openAddProjectModal() {
+      const title = prompt("প্রকল্পের নাম লিখুন:");
+      if (title) {
+        const cat = prompt("ক্যাটাগরি লিখুন (যেমন: বড় প্রকল্প / বিদ্যুৎ ও জ্বালানি / সড়ক):", "বড় প্রকল্প");
+        const budget = prompt("বাজেট লিখুন (যেমন: ৫০০ কোটি টাকা):", "৫০০ কোটি টাকা");
+        const newProj = {
+          id: "proj_" + Date.now(),
+          titleBn: title,
+          subtitleBn: "নতুন উন্নয়ন কার্যক্রম",
+          category: cat || "বড় প্রকল্প",
+          completion: 10,
+          budget: budget || "১০০ কোটি"
+        };
+        projects.unshift(newProj);
+        renderProjects();
+        if (window.db) {
+          window.setDoc(window.doc(window.db, "development_projects", newProj.id), newProj);
+        }
+        showToast("নতুন প্রকল্প সফলভাবে যোগ হয়েছে!");
+      }
+    }
+
+    async function loadProjects() {
+      if (window.db) {
+        try {
+          const snap = await window.getDocs(window.collection(window.db, "development_projects"));
+          if (!snap.empty) {
+            projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          }
+        } catch(e) { console.log(e); }
+      }
+      renderProjects();
+    }
+
+    function renderGallery() {
+      const grid = document.getElementById('galleryGrid');
+      grid.innerHTML = gallery.map(item => `
+        <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+          <div class="h-32 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 mb-2">
+            <i class="fa-solid fa-${item.type === 'VIDEO' ? 'play text-2xl text-rose-500' : 'image text-2xl text-blue-500'}"></i>
+          </div>
+          <span class="text-[10px] font-bold text-royal-blue bg-blue-100 px-2 py-0.5 rounded">${item.eventTag}</span>
+          <h5 class="text-xs font-bold text-slate-800 mt-1 line-clamp-2">${item.titleBn}</h5>
+          <p class="text-[10px] text-slate-400 mt-1">${item.date}</p>
+        </div>
+      `).join('');
+    }
+
+    function openAddGalleryModal() {
+      const title = prompt("ফটো বা ভিডিওর ক্যাপশন লিখুন:");
+      if (title) {
+        const type = confirm("এটি কি ভিডিও লিংক? (OK = Video, Cancel = Photo)") ? "VIDEO" : "PHOTO";
+        const tag = prompt("ইভেন্ট ট্যাগ লিখুন (যেমন: উন্নয়ন মেগা প্রকল্প):", "উন্নয়ন মেগা প্রকল্প");
+        const newItem = {
+          id: "gal_" + Date.now(),
+          titleBn: title,
+          type: type,
+          eventTag: tag || "উন্নয়ন অগ্রযাত্রা",
+          date: "২০২৬"
+        };
+        gallery.unshift(newItem);
+        renderGallery();
+        if (window.db) {
+          window.setDoc(window.doc(window.db, "gallery_items", newItem.id), newItem);
+        }
+        showToast("গ্যালারি আইটেম যোগ হয়েছে!");
+      }
+    }
+
+    async function loadGallery() {
+      if (window.db) {
+        try {
+          const snap = await window.getDocs(window.collection(window.db, "gallery_items"));
+          if (!snap.empty) {
+            gallery = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          }
+        } catch(e) { console.log(e); }
+      }
+      renderGallery();
+    }
+
+    const defaultProfile = {
+      nameBn: "আশেক উল্লাহ রফিক",
+      nameEn: "Asheq Ullah Rafiq",
+      titleBn: "সাবেক সংসদ সদস্য, কক্সবাজার-২ (মহেশখালী-কুতুবদিয়া)",
+      titleEn: "Former Member of Parliament, Cox's Bazar-2 (Moheshkhali-Kutubdia)",
+      birthDateBn: "জন্ম: ২৪ জুলাই ১৯৭১",
+      birthDateEn: "Born: July 24, 1971",
+      birthPlaceBn: "জন্মস্থান: কক্সবাজার",
+      birthPlaceEn: "Birthplace: Cox's Bazar",
+      photoUrl: "drawable:asheq_avatar",
+      bannerUrl: "drawable:moheshkhali_banner",
+      briefIntroBn: "আশেক উল্লাহ রফিক একজন বাংলাদেশি রাজনীতিবিদ, ব্যবসায়ী এবং কক্সবাজার-২ (মহেশখালী-কুতুবদিয়া) আসনের সাবেক সংসদ সদস্য। তিনি বাংলাদেশ আওয়ামী লীগের প্রার্থী হিসেবে দশম, একাদশ ও দ্বাদশ জাতীয় সংসদ নির্বাচনে টানা তিনবার বিপুল ভোটে সংসদ সদস্য নির্বাচিত হন। দ্বীপ উপজেলা মহেশখালী ও কুতুবদিয়াকে জাতীয় অর্থনীতির মূল চালিকাশক্তিতে রূপান্তর, গভীর সমুদ্রবন্দর স্থাপন ও উপকূলীয় অবকাঠামোর মেগা উন্নয়নে তাঁর অবদান অবিস্মরণীয়।",
+      briefIntroEn: "Asheq Ullah Rafiq is a prominent Bangladeshi political leader, entrepreneur, and former Member of Parliament representing the Cox's Bazar-2 (Moheshkhali-Kutubdia) constituency. Elected across the 10th, 11th, and 12th National Parliaments, he has spearheaded monumental socio-economic advancements, deep sea port logistics, and 100% island electrification.",
+      earlyLifeTitleBn: "প্রারম্ভিক জীবন ও শিক্ষা",
+      earlyLifeTitleEn: "Early Life & Education",
+      earlyLifeContentBn: "২৪ জুলাই ১৯৭১ সালে কক্সবাজারের ঐতিহ্যবাহী এক সম্ভ্রান্ত পরিবারে জন্মগ্রহণ করেন। তিনি চট্টগ্রাম সরকারি কমার্স কলেজ থেকে হিসাববিজ্ঞানে বিকম (অনার্স) ও সফলতার সাথে এমকম ডিগ্রি লাভ করেন। ছাত্রজীবন থেকেই তিনি উচ্চ নৈতিক মূল্যবোধ ও জনকল্যাণমুখী কর্মকাণ্ডে যুক্ত হন।",
+      earlyLifeContentEn: "Born on July 24, 1971, into a venerable family in Cox's Bazar. He completed his B.Com (Honours) and M.Com in Accounting from the prestigious Chittagong Government Commerce College, exhibiting distinguished academic and leadership qualities.",
+      studentPoliticsTitleBn: "ছাত্ররাজনীতি ও সাংগঠনিক দায়িত্ব",
+      studentPoliticsTitleEn: "Student Politics & Organizational Roles",
+      studentPoliticsContentBn: "ছাত্রজীবনে তিনি চট্টগ্রাম সরকারি কমার্স কলেজ ছাত্র সংসদের ভিপি (সহ-সভাপতি) এবং জিএস (সাধারণ সম্পাদক) নির্বাচিত হন। পরবর্তীতে চট্টগ্রাম বিশ্ববিদ্যালয় সিনেট সদস্য হিসেবে শিক্ষা সংস্কার ও শিক্ষার্থীদের অধিকার রক্ষায় গুরুত্বপূর্ণ অবদান রাখেন। এরপর কক্সবাজার জেলা আওয়ামী লীগের বিভিন্ন গুরুত্বপূর্ণ সাংগঠনিক পদে বিশ্বস্ততার সাথে দায়িত্ব পালন করেন।",
+      studentPoliticsContentEn: "Demonstrated charismatic student leadership as both Vice President (VP) and General Secretary (GS) of Chittagong Govt Commerce College Student Union. Later served with distinction as an elected Senate Member of the University of Chittagong.",
+      parliamentDutiesTitleBn: "জাতীয় সংসদে দায়িত্ব পালন",
+      parliamentDutiesTitleEn: "Parliamentary Duties (10th, 11th, 12th)",
+      parliamentDutiesContentBn: "২০১৪ সালের ৫ জানুয়ারি দশম, ২০১৮ সালের ৩০ ডিসেম্বর একাদশ এবং ২০২৪ সালের ৭ জানুয়ারি দ্বাদশ জাতীয় সংসদ নির্বাচনে বাংলাদেশ আওয়ামী লীগের নৌকা প্রতীকে কক্সবাজার-২ আসন থেকে টানা ৩ বার সংসদ সদস্য নির্বাচিত হন। জাতীয় সংসদে বিদ্যুৎ, জ্বালানি ও খনিজ সম্পদ এবং পরিকল্পনা বিষয়ক স্থায়ী কমিটিতে গুরুত্বপূর্ণ ভূমিকা পালন করেন।",
+      parliamentDutiesContentEn: "Elected to the 10th, 11th, and 12th National Parliaments representing Cox's Bazar-2. Actively served on key parliamentary standing committees advocating national coastal security, energy infrastructure, and maritime connectivity.",
+      publicActivitiesTitleBn: "জনসংযোগ ও প্রাতিষ্ঠানিক কর্মকাণ্ড",
+      publicActivitiesTitleEn: "Public Relations & Institutional Work",
+      publicActivitiesContentBn: "মহেশখালী ও কুতুবদিয়ার চরাঞ্চল ও দ্বীপবাসীদের জন্য মাতারবাড়ি গভীর সমুদ্রবন্দর, কয়লাভিত্তিক বিদ্যুৎ কেন্দ্র, সাবমেরিন ক্যাবল বিদ্যুৎ সংযোগ, সাইক্লোন শেল্টার এবং বন্যা নিয়ন্ত্রণ বেড়িবাঁধ বাস্তবায়নে অগ্রণী ভূমিকা পালন করেন। এছাড়াও অসংখ্য স্কুল, কলেজ, মাদ্রাসা ও জনকল্যাণমূলক প্রতিষ্ঠানের প্রতিষ্ঠাতা ও পৃষ্ঠপোষক।",
+      publicActivitiesContentEn: "Spearheaded monumental socio-economic projects including the Matarbari Deep Sea Port, submarine power cables, disaster shelters, climate dykes, and patronized dozens of colleges, schools, and charitable foundations.",
+      educationBn: "বি.কম (অনার্স), এম.কম (হিসাববিজ্ঞান), চট্টগ্রাম সরকারি কমার্স কলেজ",
+      educationEn: "B.Com (Hons), M.Com (Accounting), Chittagong Govt Commerce College",
+      professionBn: "রাজনীতিবিদ ও ব্যবসায়ী",
+      professionEn: "Politician & Business Professional",
+      politicalPartyBn: "বাংলাদেশ আওয়ামী লীগ",
+      politicalPartyEn: "Bangladesh Awami League",
+      constituencyBn: "কক্সবাজার-২ (মহেশখালী–কুতুবদিয়া)",
+      constituencyEn: "Cox's Bazar-2 (Moheshkhali–Kutubdia)",
+      parliamentTermsBn: "১০ম, ১১শ ও ১২শ জাতীয় সংসদ (২০১৪ – ২০২৪)",
+      parliamentTermsEn: "10th, 11th & 12th National Parliament (2014 – 2024)",
+      collegeUnionBn: "সাবেক ভিপি (সহ-সভাপতি) ও জিএস, চট্টগ্রাম সরকারি কমার্স কলেজ ছাত্র সংসদ",
+      collegeUnionEn: "Former VP & GS, Chittagong Govt Commerce College Student Union",
+      universitySenateBn: "সাবেক সিনেট সদস্য, চট্টগ্রাম বিশ্ববিদ্যালয়",
+      universitySenateEn: "Former Senate Member, University of Chittagong",
+      fullBiographyBn: "আশেক উল্লাহ রফিক (জন্ম: ২৪ জুলাই ১৯৭১) একজন বাংলাদেশি রাজনীতিবিদ ও সাবেক সংসদ সদস্য। তিনি বাংলাদেশ আওয়ামী লীগের প্রার্থী হিসেবে কক্সবাজার-২ (মহেশখালী-কুতুবদিয়া) আসন থেকে ২০১৪, ২০১৮ এবং ২০২৪ সালের জাতীয় সংসদ নির্বাচনে টানা তিন মেয়াদে সংসদ সদস্য নির্বাচিত হন।\n\nপ্রারম্ভিক জীবন ও শিক্ষাজীবন:\nতিনি ১৯৭১ সালের ২৪ জুলাই কক্সবাজারের এক ঐতিহ্যবাহী রাজনৈতিক পরিবারে জন্মগ্রহণ করেন। তিনি চট্টগ্রাম সরকারি কমার্স কলেজ থেকে হিসাববিজ্ঞানে স্নাতক (সম্মান) ও স্নাতকোত্তর ডিগ্রি লাভ করেন।\n\nরাজনৈতিক জীবন ও জনসেবা:\nছাত্রজীবন থেকেই তিনি বাংলাদেশ ছাত্রলীগের রাজনীতির সাথে যুক্ত হন এবং চট্টগ্রাম সরকারি কমার্স কলেজ ছাত্র সংসদের জিএস ও পরবর্তীতে ভিপি নির্বাচিত হন। তিনি চট্টগ্রাম বিশ্ববিদ্যালয় সিনেটের নির্বাচিত সদস্য ছিলেন। ২০১৪ সালের দশম জাতীয় সংসদ নির্বাচনে তিনি কক্সবাজার-২ আসন থেকে প্রথমবার সংসদ সদস্য নির্বাচিত হন এবং পরবর্তীতে একাদশ ও দ্বাদশ সংসদে পুনঃনির্বাচিত হন।\n\nদ্বীপবাসীর উন্নয়ন ও অবদান:\nমহেশখালী ও কুতুবদিয়া উপজেলার দ্বীপবাসীর জীবনমান উন্নয়নে তিনি বিশেষ ভূমিকা পালন করেন। মাতারবাড়ি গভীর সমুদ্রবন্দর, মাতারবাড়ি ১২০০ মেগাওয়াট কয়লা বিদ্যুৎ কেন্দ্র, সাবমেরিন ক্যাবলের মাধ্যমে কুতুবদিয়া দ্বীপে শতভাগ বিদ্যুৎ সরবরাহ, সিসি ব্লক বেড়িবাঁধ নির্মাণ এবং নতুন সড়ক ও সেতু নির্মাণে তাঁর অবদান ঐতিহাসিক। এছাড়া উপকূলীয় দুর্যোগে মানুষের পাশে দাঁড়ানো ও সামাজিক কল্যাণমূলক কর্মকাণ্ডের মাধ্যমে তিনি গণমানুষের নেতা হিসেবে পরিচিতি লাভ করেন।",
+      fullBiographyEn: "Asheq Ullah Rafiq (born July 24, 1971) is a prominent Bangladeshi politician and former Member of Parliament for the Cox's Bazar-2 constituency comprising Moheshkhali and Kutubdia upazilas.\n\nEarly Life & Education:\nBorn on July 24, 1971, in Cox's Bazar. He completed his Bachelor of Commerce (Honours) and Master of Commerce in Accounting from Chittagong Government Commerce College.\n\nPolitical Career:\nStarting in student politics, he served with distinction as both General Secretary (GS) and Vice President (VP) of the Chittagong Government Commerce College Student Union. He was an elected member of the Senate of the University of Chittagong. He was elected as MP in the 10th (2014), 11th (2018), and 12th (2024) National Parliaments.\n\nKey Contributions to the Coastal Islands:\nDuring his tenure, the coastal islands underwent massive economic transformation, hosting the Matarbari Deep Sea Port, ultra-supercritical coal power generation, 100% submarine cable electrification for Kutubdia, modern disaster-resilient CC-block embankments, and extensive school, health, and transport infrastructure."
+    };
+
+    async function loadProfileData() {
+      let data = { ...defaultProfile };
+      if (window.db) {
+        try {
+          const snap = await window.getDoc(window.doc(window.db, "profile_info", "main"));
+          if (snap.exists()) {
+            data = { ...data, ...snap.data() };
+          }
+        } catch(e) { console.log(e); }
+      }
+
+      // Populate Inputs
+      document.getElementById('prof_name_bn').value = data.nameBn || "";
+      document.getElementById('prof_name_en').value = data.nameEn || "";
+      document.getElementById('prof_title_bn').value = data.titleBn || "";
+      document.getElementById('prof_title_en').value = data.titleEn || "";
+      document.getElementById('prof_dob_bn').value = data.birthDateBn || "";
+      document.getElementById('prof_dob_en').value = data.birthDateEn || "";
+      document.getElementById('prof_birthplace_bn').value = data.birthPlaceBn || "";
+      document.getElementById('prof_birthplace_en').value = data.birthPlaceEn || "";
+      document.getElementById('prof_photo_url').value = data.photoUrl || "";
+      document.getElementById('prof_banner_url').value = data.bannerUrl || "";
+
+      document.getElementById('prof_intro_bn').value = data.briefIntroBn || "";
+      document.getElementById('prof_intro_en').value = data.briefIntroEn || "";
+
+      document.getElementById('prof_early_title_bn').value = data.earlyLifeTitleBn || "";
+      document.getElementById('prof_early_content_bn').value = data.earlyLifeContentBn || "";
+      document.getElementById('prof_early_content_en').value = data.earlyLifeContentEn || "";
+
+      document.getElementById('prof_student_title_bn').value = data.studentPoliticsTitleBn || "";
+      document.getElementById('prof_student_content_bn').value = data.studentPoliticsContentBn || "";
+      document.getElementById('prof_student_content_en').value = data.studentPoliticsContentEn || "";
+
+      document.getElementById('prof_parl_title_bn').value = data.parliamentDutiesTitleBn || "";
+      document.getElementById('prof_parl_content_bn').value = data.parliamentDutiesContentBn || "";
+      document.getElementById('prof_parl_content_en').value = data.parliamentDutiesContentEn || "";
+
+      document.getElementById('prof_public_title_bn').value = data.publicActivitiesTitleBn || "";
+      document.getElementById('prof_public_content_bn').value = data.publicActivitiesContentBn || "";
+      document.getElementById('prof_public_content_en').value = data.publicActivitiesContentEn || "";
+
+      document.getElementById('prof_edu_bn').value = data.educationBn || "";
+      document.getElementById('prof_profession_bn').value = data.professionBn || "";
+      document.getElementById('prof_party_bn').value = data.politicalPartyBn || "";
+      document.getElementById('prof_constituency_bn').value = data.constituencyBn || "";
+      document.getElementById('prof_terms_bn').value = data.parliamentTermsBn || "";
+      document.getElementById('prof_union_bn').value = data.collegeUnionBn || "";
+      document.getElementById('prof_senate_bn').value = data.universitySenateBn || "";
+
+      document.getElementById('prof_full_bio_bn').value = data.fullBiographyBn || "";
+      document.getElementById('prof_full_bio_en').value = data.fullBiographyEn || "";
+    }
+
+    async function saveProfileData() {
+      const prof = {
+        nameBn: document.getElementById('prof_name_bn').value,
+        nameEn: document.getElementById('prof_name_en').value,
+        titleBn: document.getElementById('prof_title_bn').value,
+        titleEn: document.getElementById('prof_title_en').value,
+        birthDateBn: document.getElementById('prof_dob_bn').value,
+        birthDateEn: document.getElementById('prof_dob_en').value,
+        birthPlaceBn: document.getElementById('prof_birthplace_bn').value,
+        birthPlaceEn: document.getElementById('prof_birthplace_en').value,
+        photoUrl: document.getElementById('prof_photo_url').value,
+        bannerUrl: document.getElementById('prof_banner_url').value,
+
+        briefIntroBn: document.getElementById('prof_intro_bn').value,
+        briefIntroEn: document.getElementById('prof_intro_en').value,
+
+        earlyLifeTitleBn: document.getElementById('prof_early_title_bn').value,
+        earlyLifeContentBn: document.getElementById('prof_early_content_bn').value,
+        earlyLifeContentEn: document.getElementById('prof_early_content_en').value,
+
+        studentPoliticsTitleBn: document.getElementById('prof_student_title_bn').value,
+        studentPoliticsContentBn: document.getElementById('prof_student_content_bn').value,
+        studentPoliticsContentEn: document.getElementById('prof_student_content_en').value,
+
+        parliamentDutiesTitleBn: document.getElementById('prof_parl_title_bn').value,
+        parliamentDutiesContentBn: document.getElementById('prof_parl_content_bn').value,
+        parliamentDutiesContentEn: document.getElementById('prof_parl_content_en').value,
+
+        publicActivitiesTitleBn: document.getElementById('prof_public_title_bn').value,
+        publicActivitiesContentBn: document.getElementById('prof_public_content_bn').value,
+        publicActivitiesContentEn: document.getElementById('prof_public_content_en').value,
+
+        educationBn: document.getElementById('prof_edu_bn').value,
+        professionBn: document.getElementById('prof_profession_bn').value,
+        politicalPartyBn: document.getElementById('prof_party_bn').value,
+        constituencyBn: document.getElementById('prof_constituency_bn').value,
+        parliamentTermsBn: document.getElementById('prof_terms_bn').value,
+        collegeUnionBn: document.getElementById('prof_union_bn').value,
+        universitySenateBn: document.getElementById('prof_senate_bn').value,
+
+        fullBiographyBn: document.getElementById('prof_full_bio_bn').value,
+        fullBiographyEn: document.getElementById('prof_full_bio_en').value,
+        updatedAt: window.serverTimestamp ? window.serverTimestamp() : new Date().toISOString()
+      };
+
+      if (window.db) {
+        try {
+          // Save to profile_info collection
+          await window.setDoc(window.doc(window.db, "profile_info", "main"), prof, { merge: true });
+          // Save backward compatibility copy to profile_data
+          await window.setDoc(window.doc(window.db, "profile_data", "main"), prof, { merge: true });
+        } catch(e) {
+          console.error("Profile save error:", e);
+        }
+      }
+      showToast("প্রোফাইল ডেটা ফায়ারস্টোরে (profile_info/main) সফলভাবে সংরক্ষিত হয়েছে!");
+    }
+
+    function renderGrievances() {
+      const tbody = document.getElementById('grievanceTableBody');
+      tbody.innerHTML = grievances.map((g, idx) => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-semibold text-slate-800">${g.name}</td>
+          <td class="px-4 py-3">${g.phone}</td>
+          <td class="px-4 py-3">${g.upazila}</td>
+          <td class="px-4 py-3 max-w-xs truncate">${g.subject}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex px-2 py-0.5 text-xs font-bold rounded-full ${g.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' : (g.status === 'Under Review' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700')}">
+              ${g.status}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <select onchange="updateGrievanceStatus(${idx}, this.value)" class="text-xs border border-slate-200 rounded px-2 py-1">
+              <option value="Pending" ${g.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Under Review" ${g.status === 'Under Review' ? 'selected' : ''}>Under Review</option>
+              <option value="Resolved" ${g.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+            </select>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateGrievanceStatus(idx, newStatus) {
+      grievances[idx].status = newStatus;
+      renderGrievances();
+      if (window.db && grievances[idx].id) {
+        window.setDoc(window.doc(window.db, "citizen_grievances", grievances[idx].id), { status: newStatus }, { merge: true });
+      }
+      showToast(`আবেদনের অবস্থা '${newStatus}' এ পরিবর্তন হয়েছে!`);
+    }
+
+    async function fetchGrievances() {
+      if (window.db) {
+        try {
+          const snap = await window.getDocs(window.collection(window.db, "citizen_grievances"));
+          if (!snap.empty) {
+            grievances = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          }
+        } catch(e) { console.log(e); }
+      }
+      renderGrievances();
+    }
+
+    // Seed default dataset to Firestore
+    async function seedAllDataToFirestore() {
+      if (!window.db) {
+        alert("Firestore সংযোগ প্রক্রিয়াধীন, অনুগ্রহ করে কয়েক সেকেন্ড অপেক্ষা করুন।");
+        return;
+      }
+      try {
+        await saveHomeConfig();
+        for (const chip of filterChips) {
+          await window.setDoc(window.doc(window.db, "filter_chips", chip.id), chip, { merge: true });
+        }
+        for (const proj of projects) {
+          await window.setDoc(window.doc(window.db, "development_projects", proj.id), proj, { merge: true });
+        }
+        for (const gal of gallery) {
+          await window.setDoc(window.doc(window.db, "gallery_items", gal.id), gal, { merge: true });
+        }
+        await saveProfileData();
+        for (const g of grievances) {
+          await window.setDoc(window.doc(window.db, "citizen_grievances", g.id), g, { merge: true });
+        }
+        showToast("সব ৫টি নেভিগেশন স্ক্রিনের প্রাথমিক ডেটা ফায়ারস্টোরে সিড হয়েছে!", true);
+      } catch (err) {
+        console.error("Seed error:", err);
+        showToast("সিড করার সময় ত্রুটি ঘটেছে: " + err.message, false);
+      }
+    }
+    window.seedAllDataToFirestore = seedAllDataToFirestore;
+  </script>
+</body>
+</html>

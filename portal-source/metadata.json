@@ -1,0 +1,6 @@
+{
+  "name": "Asheq Ullah Rafiq",
+  "description": "উন্নয়ন ও জনসংযোগ পোর্টাল — Development & Public Relations Portal for Moheshkhali & Kutubdia with dynamic admin-ready data architecture, weather & sea-truck updates, emergency services, and tourism guide.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
