@@ -2,24 +2,26 @@ package com.example.util
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.R
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
@@ -27,8 +29,12 @@ import java.util.UUID
 /**
  * Notification and FCM synchronization manager.
  *
- * Named Firestore database:
- * ai-studio-android-ashequll-1eaee2e6-a2b4-4b98-a823-0ccf82508943
+ * Responsibilities:
+ * 1. FCM token synchronization.
+ * 2. Notice push preference synchronization.
+ * 3. Published notification listening.
+ * 4. Android system notification display.
+ * 5. Device token cleanup on logout.
  */
 object NotificationSyncManager {
 
@@ -41,16 +47,22 @@ object NotificationSyncManager {
     private const val CHANNEL_ID = "published_notices"
     private const val CHANNEL_NAME = "নতুন বিজ্ঞপ্তি"
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private const val DEVICE_PREFS = "notification_device_prefs"
+    private const val DEVICE_ID_KEY = "stable_device_id"
+
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO
+    )
 
     @Volatile
     private var cachedToken: String? = null
 
+    @Volatile
     private var noticeListener: ListenerRegistration? = null
 
-    /**
-     * Notification model for the app's Notification Center.
-     */
+    @Volatile
+    private var listenerGeneration = 0
+
     data class PublishedNotification(
         val id: String,
         val title: String,
@@ -82,21 +94,43 @@ object NotificationSyncManager {
      * Get stable device identifier.
      */
     fun getDeviceId(context: Context): String {
+        val appContext = context.applicationContext
+
         return try {
             val androidId = Settings.Secure.getString(
-                context.applicationContext.contentResolver,
+                appContext.contentResolver,
                 Settings.Secure.ANDROID_ID
             )
 
             if (!androidId.isNullOrBlank()) {
                 androidId
             } else {
-                "dev_${UUID.randomUUID().toString().take(12)}"
+                val prefs = appContext.getSharedPreferences(
+                    DEVICE_PREFS,
+                    Context.MODE_PRIVATE
+                )
+
+                val savedId = prefs.getString(
+                    DEVICE_ID_KEY,
+                    null
+                )
+
+                if (!savedId.isNullOrBlank()) {
+                    savedId
+                } else {
+                    val newId = "dev_${UUID.randomUUID()}"
+
+                    prefs.edit()
+                        .putString(DEVICE_ID_KEY, newId)
+                        .apply()
+
+                    newId
+                }
             }
 
         } catch (e: Exception) {
-            Log.w(TAG, "Unable to get Android ID", e)
-            "dev_${UUID.randomUUID().toString().take(12)}"
+            Log.e(TAG, "Unable to get device ID", e)
+            "dev_${UUID.randomUUID()}"
         }
     }
 
@@ -107,27 +141,35 @@ object NotificationSyncManager {
         context: Context,
         tokenOverride: String? = null
     ) {
+        val appContext = context.applicationContext
+
         scope.launch {
             try {
                 val token = tokenOverride ?: try {
-                    FirebaseMessaging.getInstance().token.await()
+                    FirebaseMessaging.getInstance()
+                        .token
+                        .await()
                 } catch (e: Exception) {
-                    Log.w(TAG, "FCM token retrieval failed", e)
+                    Log.e(TAG, "FCM token retrieval failed", e)
                     null
                 }
 
                 if (token.isNullOrBlank()) {
+                    Log.w(TAG, "FCM token is empty")
                     return@launch
                 }
 
                 cachedToken = token
 
                 val authUser = Firebase.auth.currentUser
-                    ?: return@launch
+                    ?: run {
+                        Log.d(TAG, "No authenticated user; token not synced")
+                        return@launch
+                    }
 
                 val uid = authUser.uid
-                val db = getDb(context)
-                val deviceId = getDeviceId(context)
+                val db = getDb(appContext)
+                val deviceId = getDeviceId(appContext)
 
                 val userDocRef = db
                     .collection("users")
@@ -137,8 +179,7 @@ object NotificationSyncManager {
                     .collection("fcm_tokens")
                     .document(deviceId)
 
-                // Save device-specific FCM token.
-                val deviceTokenData = hashMapOf(
+                val deviceTokenData = hashMapOf<String, Any>(
                     "token" to token,
                     "deviceId" to deviceId,
                     "deviceModel" to (Build.MODEL ?: "Android Device"),
@@ -148,8 +189,7 @@ object NotificationSyncManager {
 
                 deviceTokenRef.set(deviceTokenData).await()
 
-                // Update user document.
-                val userUpdates = hashMapOf(
+                val userUpdates = hashMapOf<String, Any>(
                     "fcmToken" to token,
                     "fcmTokens" to FieldValue.arrayUnion(token),
                     "lastActiveAt" to FieldValue.serverTimestamp()
@@ -160,10 +200,7 @@ object NotificationSyncManager {
                     com.google.firebase.firestore.SetOptions.merge()
                 ).await()
 
-                Log.d(
-                    TAG,
-                    "FCM token synced for user $uid"
-                )
+                Log.d(TAG, "FCM token synced for user $uid")
 
             } catch (e: Exception) {
                 Log.e(TAG, "FCM token sync failed", e)
@@ -172,13 +209,18 @@ object NotificationSyncManager {
     }
 
     /**
-     * Synchronize notification topic preferences.
+     * Synchronize notice push preferences.
+     *
+     * This controls PUSH DELIVERY only.
+     * It does not delete or hide in-app notifications.
      */
     fun syncNoticePreferences(
         context: Context,
         noticesEnabled: Boolean,
         language: String = "bn"
     ) {
+        val appContext = context.applicationContext
+
         scope.launch {
             try {
                 val messaging = FirebaseMessaging.getInstance()
@@ -210,7 +252,7 @@ object NotificationSyncManager {
                             .await()
                     }
 
-                    Log.d(TAG, "Notice topics subscribed")
+                    Log.d(TAG, "Notice push topics subscribed")
 
                 } else {
 
@@ -226,16 +268,16 @@ object NotificationSyncManager {
                         .unsubscribeFromTopic(TOPIC_NOTICES_EN)
                         .await()
 
-                    Log.d(TAG, "Notice topics unsubscribed")
+                    Log.d(TAG, "Notice push topics unsubscribed")
                 }
 
                 val authUser = Firebase.auth.currentUser
 
                 if (authUser != null) {
 
-                    val db = getDb(context)
+                    val db = getDb(appContext)
 
-                    val prefs = hashMapOf(
+                    val prefs = hashMapOf<String, Any>(
                         "enabled" to true,
                         "applicationStatus" to true,
                         "notices" to noticesEnabled,
@@ -255,6 +297,11 @@ object NotificationSyncManager {
                         .await()
                 }
 
+                Log.d(
+                    TAG,
+                    "Notice preference synced: $noticesEnabled"
+                )
+
             } catch (e: Exception) {
                 Log.e(TAG, "Notice preference sync failed", e)
             }
@@ -262,12 +309,14 @@ object NotificationSyncManager {
     }
 
     /**
-     * Listen to published notifications from Firestore.
+     * Listen to published notifications.
      *
-     * The callback supplies data to the app's Notification Center.
-     * New notifications are also displayed in the Android notification bar.
+     * Every published notification is delivered to onNotifications.
      *
-     * This listener works while the app process is active.
+     * System notification display is separately controlled by
+     * InAppNotificationHelper.isNoticesAlertEnabled().
+     *
+     * Initial snapshot does not generate old system notifications.
      */
     fun listenPublishedNotifications(
         context: Context,
@@ -278,14 +327,21 @@ object NotificationSyncManager {
 
         stopNotificationListener()
 
+        val currentGeneration = listenerGeneration
+
         try {
             val db = getDb(appContext)
 
             var firstSnapshot = true
 
-            noticeListener = db.collection("notifications")
+            val registration = db
+                .collection("notifications")
                 .whereEqualTo("isPublished", true)
                 .addSnapshotListener { snapshot, error ->
+
+                    if (currentGeneration != listenerGeneration) {
+                        return@addSnapshotListener
+                    }
 
                     if (error != null) {
                         Log.e(
@@ -306,17 +362,23 @@ object NotificationSyncManager {
                         return@addSnapshotListener
                     }
 
-                    // Convert Firestore documents into app notification models.
+                    // Load every published notification.
                     val notifications = snapshot.documents.map { doc ->
 
                         val title = doc.getString("titleBn")
+                            ?.takeIf { it.isNotBlank() }
                             ?: doc.getString("titleEn")
+                                ?.takeIf { it.isNotBlank() }
                             ?: "নতুন বিজ্ঞপ্তি"
 
                         val body = doc.getString("bodyBn")
+                            ?.takeIf { it.isNotBlank() }
                             ?: doc.getString("messageBn")
+                                ?.takeIf { it.isNotBlank() }
                             ?: doc.getString("bodyEn")
+                                ?.takeIf { it.isNotBlank() }
                             ?: doc.getString("messageEn")
+                                ?.takeIf { it.isNotBlank() }
                             ?: ""
 
                         val timestamp = doc.getTimestamp("createdAt")
@@ -337,43 +399,79 @@ object NotificationSyncManager {
                         it.createdAt
                     }
 
-                    // Send data to app Notification Center.
-                    onNotifications(notifications)
+                    // In-app Notification Center always receives data.
+                    try {
+                        onNotifications(notifications)
+                    } catch (e: Exception) {
+                        Log.e(
+                            TAG,
+                            "Notification callback failed",
+                            e
+                        )
+                    }
 
-                    // Do not show old notifications on initial load.
+                    // Skip old notifications on initial load.
                     if (firstSnapshot) {
                         firstSnapshot = false
                         return@addSnapshotListener
                     }
 
-                    // Show only newly added published notifications.
+                    // Push preference controls system notifications only.
+                    val pushEnabled = try {
+                        InAppNotificationHelper
+                            .isNoticesAlertEnabled(appContext)
+                    } catch (e: Exception) {
+                        Log.e(
+                            TAG,
+                            "Could not read notice push preference",
+                            e
+                        )
+                        false
+                    }
+
+                    if (!pushEnabled) {
+                        Log.d(
+                            TAG,
+                            "Push disabled; in-app notifications remain available"
+                        )
+                        return@addSnapshotListener
+                    }
+
+                    // Display only newly added published documents.
                     for (change in snapshot.documentChanges) {
 
-                        if (
-                            change.type ==
-                            Query.DocumentChange.Type.ADDED
-                        ) {
-                            val doc = change.document
-
-                            val title = doc.getString("titleBn")
-                                ?: doc.getString("titleEn")
-                                ?: "নতুন বিজ্ঞপ্তি"
-
-                            val body = doc.getString("bodyBn")
-                                ?: doc.getString("messageBn")
-                                ?: doc.getString("bodyEn")
-                                ?: doc.getString("messageEn")
-                                ?: ""
-
-                            showSystemNotification(
-                                appContext,
-                                doc.id,
-                                title,
-                                body
-                            )
+                        if (change.type != DocumentChange.Type.ADDED) {
+                            continue
                         }
+
+                        val doc = change.document
+
+                        val title = doc.getString("titleBn")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: doc.getString("titleEn")
+                                ?.takeIf { it.isNotBlank() }
+                            ?: "নতুন বিজ্ঞপ্তি"
+
+                        val body = doc.getString("bodyBn")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: doc.getString("messageBn")
+                                ?.takeIf { it.isNotBlank() }
+                            ?: doc.getString("bodyEn")
+                                ?.takeIf { it.isNotBlank() }
+                            ?: doc.getString("messageEn")
+                                ?.takeIf { it.isNotBlank() }
+                            ?: ""
+
+                        showSystemNotification(
+                            appContext,
+                            doc.id,
+                            title,
+                            body
+                        )
                     }
                 }
+
+            noticeListener = registration
 
             Log.d(TAG, "Published notification listener started")
 
@@ -401,11 +499,26 @@ object NotificationSyncManager {
         body: String
     ) {
         try {
-            val manager = context.getSystemService(
+            val appContext = context.applicationContext
+
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(
+                    appContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.w(
+                    TAG,
+                    "POST_NOTIFICATIONS permission not granted"
+                )
+                return
+            }
+
+            val manager = appContext.getSystemService(
                 Context.NOTIFICATION_SERVICE
             ) as NotificationManager
 
-            // Android 8.0+ notification channel.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
                 val channel = NotificationChannel(
@@ -419,22 +532,8 @@ object NotificationSyncManager {
                 manager.createNotificationChannel(channel)
             }
 
-            // Android 13+ permission check.
-            if (
-                Build.VERSION.SDK_INT >= 33 &&
-                context.checkSelfPermission(
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                Log.w(
-                    TAG,
-                    "POST_NOTIFICATIONS permission not granted"
-                )
-                return
-            }
-
             val notification = NotificationCompat.Builder(
-                context,
+                appContext,
                 CHANNEL_ID
             )
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -444,9 +543,7 @@ object NotificationSyncManager {
                     NotificationCompat.BigTextStyle()
                         .bigText(body)
                 )
-                .setPriority(
-                    NotificationCompat.PRIORITY_DEFAULT
-                )
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .build()
@@ -462,14 +559,21 @@ object NotificationSyncManager {
             )
 
         } catch (e: Exception) {
-            Log.e(TAG, "System notification display failed", e)
+            Log.e(
+                TAG,
+                "System notification display failed",
+                e
+            )
         }
     }
 
     /**
      * Stop Firestore notification listener.
      */
+    @Synchronized
     fun stopNotificationListener() {
+        listenerGeneration++
+
         noticeListener?.remove()
         noticeListener = null
 
@@ -479,21 +583,24 @@ object NotificationSyncManager {
     /**
      * Cleanup this device's FCM token on logout.
      *
+     * IMPORTANT:
      * Call this before Firebase sign-out.
      */
     fun onLogout(
         context: Context,
         onComplete: () -> Unit = {}
     ) {
+        val appContext = context.applicationContext
+
         scope.launch {
             try {
                 val authUser = Firebase.auth.currentUser
                 val token = cachedToken
-                val deviceId = getDeviceId(context)
+                val deviceId = getDeviceId(appContext)
 
                 if (authUser != null) {
 
-                    val db = getDb(context)
+                    val db = getDb(appContext)
 
                     val userDocRef = db
                         .collection("users")
@@ -503,7 +610,7 @@ object NotificationSyncManager {
                         .collection("fcm_tokens")
                         .document(deviceId)
 
-                    // Deactivate this device's token.
+                    // Deactivate this device token.
                     try {
                         deviceTokenRef.update(
                             mapOf(
@@ -520,7 +627,7 @@ object NotificationSyncManager {
                         )
                     }
 
-                    // Remove only this device's token.
+                    // Remove only this device's token from user array.
                     if (!token.isNullOrBlank()) {
                         try {
                             userDocRef.update(
@@ -556,10 +663,13 @@ object NotificationSyncManager {
                         .await()
 
                 } catch (e: Exception) {
-                    Log.w(TAG, "Topic unsubscribe failed", e)
+                    Log.w(
+                        TAG,
+                        "Topic unsubscribe failed",
+                        e
+                    )
                 }
 
-                // Stop Firestore listener.
                 stopNotificationListener()
 
                 cachedToken = null
