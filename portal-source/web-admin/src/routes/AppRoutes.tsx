@@ -8,6 +8,7 @@ import { DashboardPage as LegacyDashboardPage } from '../pages/DashboardPage';
 import { LoginPage as LegacyLoginPage } from '../pages/LoginPage';
 import { ModuleDirectoryPage } from '../pages/ModuleDirectoryPage';
 import { ModuleWorkspacePage } from '../pages/ModuleWorkspacePage';
+import { NoticesIntegrationPage } from '../pages/NoticesIntegrationPage';
 import { PublicAppDownloadPage } from '../pages/PublicAppDownloadPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { AppVersionManager } from '../modules/appVersion/AppVersionManager';
@@ -16,7 +17,6 @@ import { AuditLogsViewer } from '../modules/auditLogs/AuditLogsViewer';
 import { BloodDonorsManager } from '../modules/bloodDonors/BloodDonorsManager';
 import { SingletonInspectorManager } from '../modules/config/SingletonInspectorManager';
 import { GalleryManager } from '../modules/gallery/GalleryManager';
-import { NoticesManager } from '../modules/notices/NoticesManager';
 import { NotificationManager } from '../modules/notifications/NotificationManager';
 import { NewsManager } from '../modules/news/NewsManager';
 import { ProjectsManager } from '../modules/projects/ProjectsManager';
@@ -64,7 +64,9 @@ function renderModuleElement(mod: SidebarNavItem): ReactNode {
     case 'citizen-applications':
       return <CitizenRequestsManager />;
     case 'notices':
-      return <NoticesManager />;
+      return <NoticesIntegrationPage />;
+    case 'development-notices':
+      return <NoticesIntegrationPage />;
     case 'news-press':
       return <NewsManager />;
     case 'blood-donors':
@@ -175,7 +177,6 @@ export function AppRoutes() {
             />
           ))}
 
-          {/* Legacy route compatibility redirects */}
           <Route path="daily-activities" element={<Navigate to="/daily-schedules" replace />} />
           <Route path="emergency-services" element={<Navigate to="/emergency-contacts" replace />} />
           <Route path="union-information" element={<Navigate to="/unions" replace />} />
