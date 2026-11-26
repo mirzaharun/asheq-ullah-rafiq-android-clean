@@ -1,6 +1,9 @@
 name: Deploy Firebase Hosting
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -39,11 +42,18 @@ jobs:
           project_id: asheq-ullah-rafiq-digital-p
           workload_identity_provider: projects/982402541543/locations/global/workloadIdentityPools/github-actions/providers/github-actions
           service_account: ${{ vars.FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
 
       - name: Verify authentication
         run: |
           if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
             echo "Google credentials were not configured."
+            exit 1
+          fi
+
+          if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+            echo "Google credentials file does not exist."
             exit 1
           fi
 
@@ -54,10 +64,10 @@ jobs:
         env:
           FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT: ${{ vars.FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT }}
 
-      - name: Verify configured default Hosting site
+      - name: Verify configured Hosting site
         run: |
-          if [ "$FIREBASE_HOSTING_SITE_ID" != "$FIREBASE_PROJECT_ID" ]; then
-            echo "Configured site is not the Firebase project's default Hosting site."
+          if [ -z "$FIREBASE_HOSTING_SITE_ID" ]; then
+            echo "Hosting Site ID is missing."
             exit 1
           fi
 
@@ -65,6 +75,6 @@ jobs:
         working-directory: portal-source
         run: |
           npx --yes firebase-tools@15.22.1 deploy \
-            --only hosting \
+            --only hosting:$FIREBASE_HOSTING_SITE_ID \
             --project "$FIREBASE_PROJECT_ID" \
             --non-interactive
