@@ -23,14 +23,14 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up Node.js for Admin Panel
+      - name: Set up Node.js for Build
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: portal-source/web-admin/package-lock.json
 
-      - name: Install dependencies and build Admin Panel
+      - name: Install and Build Admin Panel
         working-directory: portal-source/web-admin
         run: |
           npm ci
@@ -45,24 +45,25 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - name: Verify authentication setup
+      - name: Verify Google Credentials
         run: |
-          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "Google credentials were not configured."
-            exit 1
-          fi
+          echo "Checking credentials..."
+          test -n "$GOOGLE_APPLICATION_CREDENTIALS"
+          test -f "$GOOGLE_APPLICATION_CREDENTIALS"
+          echo "WIF credentials file exists."
 
-          if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "Credentials file does not exist."
-            exit 1
-          fi
-
-          echo "Google credentials file exists."
-
-      - name: Set up Node.js for Firebase Deploy
+      - name: Set up Node.js for Firebase CLI
         uses: actions/setup-node@v4
         with:
           node-version: 24.18.0
+
+      - name: Verify Google Token
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Check Google Authentication
+        run: |
+          gcloud auth print-access-token > /dev/null
+          echo "Google authentication successful."
 
       - name: Deploy Firebase Hosting
         working-directory: portal-source
@@ -70,4 +71,5 @@ jobs:
           npx --yes firebase-tools@15.22.3 deploy \
             --only hosting \
             --project "$FIREBASE_PROJECT_ID" \
-            --non-interactive
+            --non-interactive \
+            --debug
