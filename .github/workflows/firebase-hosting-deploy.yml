@@ -23,7 +23,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js for Admin Panel
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -45,7 +45,7 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - name: Verify authentication
+      - name: Verify authentication setup
         run: |
           if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
             echo "Google credentials were not configured."
@@ -53,28 +53,21 @@ jobs:
           fi
 
           if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "Google credentials file does not exist."
+            echo "Credentials file does not exist."
             exit 1
           fi
 
-          if [ -z "$FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT" ]; then
-            echo "Service account variable is missing."
-            exit 1
-          fi
-        env:
-          FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT: ${{ vars.FIREBASE_HOSTING_DEPLOY_SERVICE_ACCOUNT }}
+          echo "Google credentials file exists."
 
-      - name: Verify configured Hosting site
-        run: |
-          if [ -z "$FIREBASE_HOSTING_SITE_ID" ]; then
-            echo "Hosting Site ID is missing."
-            exit 1
-          fi
+      - name: Set up Node.js for Firebase Deploy
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
 
-      - name: Deploy Hosting only
+      - name: Deploy Firebase Hosting
         working-directory: portal-source
         run: |
-          npx --yes firebase-tools@15.22.1 deploy \
-            --only hosting:$FIREBASE_HOSTING_SITE_ID \
+          npx --yes firebase-tools@15.22.3 deploy \
+            --only hosting \
             --project "$FIREBASE_PROJECT_ID" \
             --non-interactive
