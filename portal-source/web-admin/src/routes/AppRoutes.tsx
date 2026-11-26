@@ -6,6 +6,7 @@ import { ProtectedRoute as LegacyProtectedRoute } from '../components/ProtectedR
 import { AppReleaseManagerPage } from '../pages/AppReleaseManagerPage';
 import { DashboardPage as LegacyDashboardPage } from '../pages/DashboardPage';
 import { LoginPage as LegacyLoginPage } from '../pages/LoginPage';
+import { ModuleDirectoryPage } from '../pages/ModuleDirectoryPage';
 import { ModuleWorkspacePage } from '../pages/ModuleWorkspacePage';
 import { PublicAppDownloadPage } from '../pages/PublicAppDownloadPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
@@ -124,9 +125,8 @@ function renderModuleElement(mod: SidebarNavItem): ReactNode {
   }
 }
 
-
 export function AppRoutes() {
-  const routedModules = SIDEBAR_MODULES.filter((m) => m.id !== 'dashboard');
+  const routedModules = SIDEBAR_MODULES.filter((m) => m.id !== 'dashboard' && m.id !== 'module-directory');
 
   return (
     <BrowserRouter>
@@ -153,6 +153,7 @@ export function AppRoutes() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<NewDashboardPage />} />
+          <Route path="modules" element={<ModuleDirectoryPage />} />
           <Route
             path="modules/:moduleKey"
             element={
@@ -180,10 +181,8 @@ export function AppRoutes() {
           <Route path="union-information" element={<Navigate to="/unions" replace />} />
         </Route>
 
-
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-

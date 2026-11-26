@@ -22,6 +22,16 @@ export const SIDEBAR_MODULES: SidebarNavItem[] = [
     allowedRoles: ['super_admin', 'editor', 'application_manager'],
   },
   {
+    id: 'module-directory',
+    path: '/modules',
+    labelBn: 'ডাইনামিক মডিউল ডিরেক্টরি',
+    labelEn: 'Dynamic Module Directory',
+    group: 'overview',
+    iconName: 'Database',
+    phase: 'B',
+    allowedRoles: ['super_admin', 'editor', 'application_manager'],
+  },
+  {
     id: 'live-dashboard',
     path: '/live-dashboard',
     labelBn: 'লাইভ পোর্টাল ড্যাশবোর্ড',
@@ -525,4 +535,3 @@ export const SIDEBAR_MODULES: SidebarNavItem[] = [
     allowedRoles: ['super_admin'],
   },
 ];
-
