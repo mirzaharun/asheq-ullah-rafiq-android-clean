@@ -12,6 +12,10 @@ service cloud.firestore {
       return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidUid(uid) {
+      return uid is string && uid.size() >= 1 && uid.size() <= 128;
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -25,7 +29,7 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return isSignedIn() && userId is string && userId.size() > 0 && request.auth.uid == userId;
+      return isSignedIn() && isValidUid(userId) && request.auth.uid == userId;
     }
 
     function adminDocPath() {
@@ -149,6 +153,21 @@ service cloud.firestore {
              isOptionalString(data, 'detailsEn', 5000) &&
              isValidCmsPublishedFlag(data) &&
              (!('isUrgent' in data) || data.isUrgent is bool);
+    }
+
+    function isValidNotification(data) {
+      return data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 300 &&
+             isOptionalString(data, 'titleEn', 300) &&
+             isOptionalString(data, 'bodyBn', 2000) &&
+             isOptionalString(data, 'bodyEn', 2000) &&
+             isOptionalString(data, 'messageBn', 2000) &&
+             isOptionalString(data, 'messageEn', 2000) &&
+             isOptionalString(data, 'type', 60) &&
+             isOptionalString(data, 'targetScreen', 100) &&
+             isOptionalString(data, 'targetId', 128) &&
+             isValidCmsPublishedFlag(data) &&
+             isValidTimestampOrMissing(data, 'createdAt') &&
+             isValidTimestampOrMissing(data, 'sentAt');
     }
 
     function isValidGalleryItem(data) {
@@ -290,7 +309,7 @@ service cloud.firestore {
                     incoming().sha256 == existing().sha256 &&
                     incoming().fileName == existing().fileName &&
                     incoming().uploadedBy == existing().uploadedBy &&
-                    incoming().createdAt == existing().createdAt;
+                    (!('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
       allow delete: if false;
     }
 
@@ -310,6 +329,15 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update: if isValidId(noticeId) && isContentAdmin() && isValidNotice(incoming());
       allow delete: if isValidId(noticeId) && isContentAdmin();
+    }
+
+    // --- Notification Center ---
+    match /notifications/{notificationId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(notificationId) &&
+                               isContentAdmin() &&
+                               isValidNotification(incoming());
+      allow delete: if isValidId(notificationId) && isContentAdmin();
     }
 
     match /gallery_items/{itemId} {
@@ -551,23 +579,24 @@ service cloud.firestore {
 
     // --- Citizen Notification Preferences & FCM Device Tokens ---
     match /users/{userId} {
-      allow get: if isValidId(userId) && (isOwner(userId) || isSuperAdmin());
-      allow create, update: if isValidId(userId) && isOwner(userId) && isValidUserNotificationData(incoming());
-      allow delete: if isValidId(userId) && isSuperAdmin();
+      allow get: if isValidUid(userId) && (isOwner(userId) || isSuperAdmin());
+      allow create, update: if isValidUid(userId) && isOwner(userId) && isValidUserNotificationData(incoming());
+      allow delete: if isValidUid(userId) && isSuperAdmin();
 
       match /fcm_tokens/{tokenId} {
-        allow get, list: if isValidId(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
-        allow create, update: if isValidId(userId) && isValidId(tokenId) && isOwner(userId) && isValidFcmTokenDoc(incoming());
-        allow delete: if isValidId(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
+        allow get: if isValidUid(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
+        allow list: if isValidUid(userId) && (isOwner(userId) || isSuperAdmin());
+        allow create, update: if isValidUid(userId) && isValidId(tokenId) && isOwner(userId) && isValidFcmTokenDoc(incoming());
+        allow delete: if isValidUid(userId) && isValidId(tokenId) && (isOwner(userId) || isSuperAdmin());
       }
     }
 
     // --- Admin RBAC & Immutable Audit Logs ---
     match /admins/{adminUid} {
-      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isSuperAdmin());
+      allow get: if isValidUid(adminUid) && (isOwner(adminUid) || isSuperAdmin());
       allow list: if isSuperAdmin();
-      allow create, update: if isValidId(adminUid) && isSuperAdmin() && isValidAdminDoc(incoming(), adminUid);
-      allow delete: if isValidId(adminUid) && isSuperAdmin();
+      allow create, update: if isValidUid(adminUid) && isSuperAdmin() && isValidAdminDoc(incoming(), adminUid);
+      allow delete: if isValidUid(adminUid) && isSuperAdmin();
     }
 
     match /audit_logs/{logId} {
